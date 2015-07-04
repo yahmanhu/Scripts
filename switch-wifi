@@ -1,0 +1,12 @@
+#!/bin/bash
+# Turn wifi on/off
+
+check_wifi=$(cat /sys/class/net/wlp3s0/operstate)
+
+if [[ $check_wifi = *"up"* ]]; then
+    sudo rfkill block wifi
+    notify-send Wi-Fi Off
+else
+    sudo rfkill unblock wifi
+    notify-send Wi-Fi On
+fi
