@@ -1,0 +1,17 @@
+#!/bin/bash
+
+light_red='\e[91m'
+light_cyan='\e[96m'
+light_blue='\e[94m'
+light_magenta='\e[95m'
+light_yellow='\e[93m'
+white='\e[97m'
+
+while true; do
+    read -p $'\e[96mKövetkező kifejezés: ' phrase
+    output=$(trans hu:en "$phrase")
+    echo -e "\n$white$output\n"
+    if [[ $phrase == "clr" ]]; then
+        clear
+    fi
+    done
