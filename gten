@@ -7,12 +7,59 @@ light_magenta='\e[95m'
 light_yellow='\e[93m'
 white='\e[97m'
 
+clearcont() {
+
+    clear
+    continue
+
+}
+
+declare -a GTHIST
+declare -a GTHISTFM
+
 while true; do
-    read -p $'\e[96mNext phrase: ' phrase
+
+    read -p $'\e[96mNext phrase: \e[97m' phrase
+
+    if [[ $phrase == "clr" ]]; then
+
+        clearcont
+
+    elif [[ $phrase == "!" ]]; then
+        clear
+
+        echo -e "\e[91mHistory\n\n\e[97mFor further translations select from the list below. To exit history, type 'exit' then hit enter.\n"
+
+        for i in "${!GTHIST[@]}"; do
+
+            echo -e "\e[91m$i \e[97m${GTHIST[$i]} ${GTHISTFM[$i]}"
+
+        done
+
+        read -p $'\n\e[91mSelect: \e[97m' select
+
+        phrase=${GTHIST[$select]}
+
+        if [[ $select == "exit" ]]; then
+
+            clearcont
+
+        fi
+
+    fi
+
     output=$(trans en:hu "$phrase")
     echo -e "\n$white$output\n"
-    if [[ $phrase == "clr" ]]; then
-        clear
-    fi
-    done
 
+    echo $output > ~/Documents/temp
+
+    first_meaning=$(echo -e $output | grep -o -E '.*Definitions|.*Translations' | sed "s/$phrase//" | sed "s/\/.*\// /" | sed "s/Definitions//" | sed "s/Translations//")
+    
+    if [[ ${GTHIST[@]} =~ $phrase ]]; then
+        :
+    else
+        GTHIST+=("$phrase")
+        GTHISTFM+=("$first_meaning")
+    fi
+
+done
