@@ -1,5 +1,7 @@
 #!/bin/bash
+# Simple translate script with history, using Translate Shell (https://github.com/soimort/translate-shell)
 
+# Some color variables
 light_red='\e[91m'
 light_cyan='\e[96m'
 light_blue='\e[94m'
@@ -7,6 +9,7 @@ light_magenta='\e[95m'
 light_yellow='\e[93m'
 white='\e[97m'
 
+# Clear and continue function
 clearcont() {
 
     clear
@@ -14,32 +17,41 @@ clearcont() {
 
 }
 
+# Declare arrays
 declare -a GTHIST
 declare -a GTHISTFM
 
+# Start of loop. Run script until terminated
 while true; do
 
+    # Ask for a phrase (or word) to look for
     read -p $'\e[96mNext phrase: \e[97m' phrase
 
+    # If phrase is "clr" (abbreviation for clear) script clears the terminal and continues the loop
     if [[ $phrase == "clr" ]]; then
 
         clearcont
 
-    elif [[ $phrase == "!" ]]; then
+    # If phrase is "hist" script clears the terminal and jumps into history
+    elif [[ $phrase == "hist" ]]; then
         clear
 
         echo -e "\e[91mHistory\n\n\e[97mFor further translations select from the list below. To exit history, type 'exit' then hit enter.\n"
 
+        # Iterate through all variables in the history array...
         for i in "${!GTHIST[@]}"; do
 
-            echo -e "\e[91m$i \e[97m${GTHIST[$i]} ${GTHISTFM[$i]}"
+        # ... and echo them pairing with their translations
+            echo -e "\e[91m$i \e[97m${GTHIST[$i]} "[${GTHISTFM[$i]}]""
 
         done
 
+        # You can select from the list for further translations...
         read -p $'\n\e[91mSelect: \e[97m' select
 
         phrase=${GTHIST[$select]}
 
+        # ... or exit history by typing "exit"
         if [[ $select == "exit" ]]; then
 
             clearcont
@@ -48,18 +60,20 @@ while true; do
 
     fi
 
+    # Translate given phrase with Translate Shell
     output=$(trans en:hu "$phrase")
-    echo -e "\n$white$output\n"
+    echo -e "\n\e[97m$output\n"
 
-    echo $output > ~/Documents/temp
-
+    # Getting the first meaning of the phrase
     first_meaning=$(echo -e $output | grep -o -E '.*Definitions|.*Translations' | sed "s/$phrase//" | sed "s/\/.*\// /" | sed "s/Definitions//" | sed "s/Translations//")
     
-    if [[ ${GTHIST[@]} =~ $phrase ]]; then
+    # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases). Also add the first meaning of the phrase to the list
+    if [[ ${GTHIST[@]} =~ "$phrase" ]]; then
         :
     else
         GTHIST+=("$phrase")
         GTHISTFM+=("$first_meaning")
     fi
 
+# End of loop
 done
