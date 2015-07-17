@@ -32,6 +32,11 @@ while true; do
 
         clearcont
 
+    # If phrase is "ext" (abbreviation for exit), script exits the program by breaking the loop
+    elif [[ $phrase == "ext" ]]; then
+
+        break
+
     # If phrase is "hist" script clears the terminal and jumps into history
     elif [[ $phrase == "hist" ]]; then
         clear
