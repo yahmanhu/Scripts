@@ -129,7 +129,8 @@ help(){
 
 cat << EOF
 
-Use 'diane' command without any option to print your tasks. If file > $diane_file < does not exist then it will be created first.
+To add tasks/notes, use 'diane' command and write your task/note without any option.
+To print your tasks/notes, use simply 'diane' command without any further options. If file > $diane_file < does not exist then it will be created first.
 If 'show_finished_task' variable set true in the script, then it will print every tasks. If 'show_finished_task' variable is false, then it will print only pending tasks.
 
 Options:
