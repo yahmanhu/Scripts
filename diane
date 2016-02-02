@@ -36,18 +36,17 @@ read_diane(){
 
 }
 
-clear_diane(){
-
-    sed -i "/.*/d" $diane_file
-
-}
-
 edit_diane(){
 
     $EDITOR $diane_file
 
 }
 
+clear_diane(){
+
+    sed -i "/.*/d" $diane_file
+
+}
 remove_diane(){
 
     rm $diane_file
@@ -59,7 +58,6 @@ add_new_task(){
     echo -e $date $input >> $diane_file
 
 }
-
 
 flag_finished_task(){
 
@@ -89,6 +87,11 @@ flag_finished_task(){
 
     fi
 
+}
+
+remove_finished_task(){
+
+    sed -i "/$DONE/d" $diane_file
 
 }
 
@@ -122,9 +125,25 @@ remove_task(){
 
 }
 
-remove_finished_task(){
+help(){
 
-    sed -i "/$DONE/d" $diane_file
+cat << EOF
+
+Use 'diane' command without any option to print your tasks. If file > $diane_file < does not exist then it will be created first.
+If 'show_finished_task' variable set true in the script, then it will print every tasks. If 'show_finished_task' variable is false, then it will print only pending tasks.
+
+Options:
+
+        -clr    -- remove all content from file
+        -e      -- edit file
+        -r      -- remove file
+        -ff     -- selec task and flag it as finished (@done) in file 
+        -sf     -- show only finished/flagged (@done) tasks
+        -rf     -- remove all finished/flagged (@done) tasks from file 
+        -rt     -- remove selected task from file
+        -h)     -- show this help page
+
+EOF
 
 }
 
@@ -149,6 +168,7 @@ case $1 in
     -sf) show_finished_tasks;;
     -rf) remove_finished_task;;
     -rt) remove_task;;
+    -h) help;;
     *) input=$@ add_new_task;;
 
 esac
