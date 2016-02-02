@@ -1,0 +1,154 @@
+#!/bin/bash
+# Simple note taking script
+
+diane_file=~/diane
+date=$(date +"<%m-%d-%Y-%H:%M:%S>")
+IFS=$'\n'
+italic=$'\e[3m'
+normal=$'\e[8m'
+DONE="@done"
+show_finished_task="true"
+
+create_diane(){
+
+    touch $diane_file
+    echo "$diane_file created"
+}
+
+show_finished_tasks(){
+
+    cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
+
+}
+
+read_diane(){
+
+    if [[ $show_finished_task == "true" ]]; then
+        
+        sed "/$DONE/d" $diane_file
+        show_finished_tasks
+
+    elif [[ $show_finished_task == "false" ]]; then
+        
+        sed "/$DONE/d" $diane_file
+
+    fi
+
+}
+
+clear_diane(){
+
+    sed -i "/.*/d" $diane_file
+
+}
+
+edit_diane(){
+
+    $EDITOR $diane_file
+
+}
+
+remove_diane(){
+
+    rm $diane_file
+
+}
+
+add_new_task(){
+
+    echo -e $date $input >> $diane_file
+
+}
+
+
+flag_finished_task(){
+
+    readarray content_array < $diane_file
+
+    for tasks in ${!content_array[@]}; do
+
+        echo -e $tasks ${content_array[$tasks]}
+
+    done
+
+    read task_index
+
+    if [[ $task_index =~ ^[0-9]+$ ]]; then
+
+        selected_task=${content_array[$task_index]}
+
+        echo -e $italic$selected_task$DONE
+
+        replace_task=$(echo -e $selected_task)
+
+        sed -i s"/$replace_task/& $DONE/" "$diane_file"
+
+    else
+
+        echo "not a valid index"
+
+    fi
+
+
+}
+
+remove_task(){
+
+    readarray content_array < $diane_file
+
+    for tasks in ${!content_array[@]}; do
+
+        echo -e $tasks ${content_array[$tasks]}
+
+    done
+
+    read task_index
+
+    if [[ $task_index =~ ^[0-9]+$ ]]; then
+
+        selected_task=${content_array[$task_index]}
+
+        echo -e removed: "$selected_task"
+
+        remove_task=$(echo -e $selected_task)
+
+        sed -i "/$remove_task/d" $diane_file
+
+    else
+
+        echo "not a valid index"
+
+    fi
+
+}
+
+remove_finished_task(){
+
+    sed -i "/$DONE/d" $diane_file
+
+}
+
+case $1 in
+
+    "") 
+        if [[ -e $diane_file ]]; then
+
+            read_diane
+
+        else
+
+            create_diane
+        fi
+        
+        ;;
+
+    -clr) clear_diane;;
+    -e) edit_diane;;
+    -r) remove_diane;;
+    -ff) flag_finished_task;;
+    -sf) show_finished_tasks;;
+    -rf) remove_finished_task;;
+    -rt) remove_task;;
+    *) input=$@ add_new_task;;
+
+esac
