@@ -1,4 +1,5 @@
 #!/bin/bash
+# Simple dmenu search tool
 
 keywords=("Google" "Youtube" "KAT" "AUR" "imdb" "Duck" "wiki" "felirat" "rarbg")
 
