@@ -1,0 +1,11 @@
+#!/bin/bash
+
+bookmarks_file=~/bookmarks
+keyword=$(cat $bookmarks_file | awk '{print $1}' | dmenu -fn 'Droid Sans Mono-12')
+#links=$(cat $bookmark_file | awk '{print $2}' | dmenu)
+selected_link=$(awk '/'"$keyword"'/{print $2}' $bookmarks_file)
+
+#echo $keyword
+#echo $selected_link
+
+xdg-open $selected_link

@@ -1,0 +1,84 @@
+#!/bin/bash
+
+keywords=("Google" "Youtube" "KAT" "AUR" "imdb" "Duck" "wiki" "felirat" "rarbg")
+
+_open(){
+
+    xdg-open $1
+
+}
+
+_keywords(){
+
+    for i in ${keywords[@]}; do
+        echo $i
+    done
+}
+
+dmenu_keywords=$(_keywords | dmenu -l 5 -i -fn 'Droid Sans Mono 12' )
+
+echo $dmenu_keywords
+
+
+case $dmenu_keywords in
+
+    Google*)
+        search_text=$(sed -e s"/Google//;s/\s/+/g" <<< $dmenu_keywords)
+        
+        _open "https://www.google.com/search?q="$search_text""
+        ;;
+
+
+    Youtube*)
+        search_text=$(sed -e s"/Youtube//;s/\s/+/g" <<< $dmenu_keywords)
+
+        _open "https://www.youtube.com/results?search_query="$search_text""
+        ;;
+
+    KAT*)
+        search_text=$(sed -e s"/KAT//;s/\s/+/g" <<< $dmenu_keywords)
+       
+        _open "https://kat.cr/usearch/?q="$search_text""
+        ;;
+
+    imdb*)
+
+        search_text=$(sed -e s"/imdb//;s/\s/+/g" <<< $dmenu_keywords)
+
+        _open "http://www.imdb.com/find?ref_=nv_sr_fn&q="$search_text"&s=all"
+        ;;
+    
+    Duck*)
+
+        search_text=$(sed -e s"/Duck//;s/\s/+/g" <<< $dmenu_keywords)
+
+        _open "https://duckduckgo.com/?q="$search_text""
+        ;;
+
+    wiki*)
+        search_text=$(sed -e s"/wiki//;s/\s/_/g" <<< $dmenu_keywords)
+
+        _open "https://en.wikipedia.org/wiki/"$search_text""
+        ;;
+
+    felirat*)
+        search_text=$(sed -e s"/felirat//;s/\s/+/g" <<< $dmenu_keywords)
+
+        _open "http://feliratok.info/?search="$search_text""
+        ;;
+
+    rarbg*)
+        search_text=$(sed -e s"/rarbg//;s/\s/+/g" <<< $dmenu_keywords)
+
+        _open "https://rarbg.to/torrents.php?search="$search_text""
+        ;;
+
+    AUR*)
+        search_text=$(sed -e s"/AUR//;s/\s//g" <<< $dmenu_keywords)
+        echo $search_text
+
+        _open "https://www.archlinux.org/packages/?sort=&q="$search_text"&maintainer=&flagged="
+        ;;
+
+esac
+
