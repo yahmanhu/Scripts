@@ -1,0 +1,13 @@
+#!/bin/bash
+# Switch keyboard layout
+
+check_layout=$(setxkbmap -query | grep 'layout')
+
+if [[ $check_layout = *"hu"* ]]; then
+	setxkbmap gb
+	notify-send "Keyboard layout GB"
+elif [[ $check_layout = *"gb"* ]]; then
+	setxkbmap hu
+	notify-send "Keyboard layout HU"
+fi
+
