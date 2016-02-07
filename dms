@@ -76,7 +76,6 @@ case $dmenu_keywords in
 
     AUR*)
         search_text=$(sed -e s"/AUR//;s/\s//g" <<< $dmenu_keywords)
-        echo $search_text
 
         _open "https://www.archlinux.org/packages/?sort=&q="$search_text"&maintainer=&flagged="
         ;;
