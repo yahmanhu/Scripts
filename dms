@@ -1,7 +1,7 @@
 #!/bin/bash
 # Simple dmenu search tool
 
-keywords=("Google" "Youtube" "KAT" "AUR" "imdb" "Duck" "wiki" "felirat" "rarbg")
+keywords=("Google" "Youtube" "KAT" "AUR" "imdb" "Duck" "wiki" "felirat" "rarbg" "album" "lyrics")
 
 _open(){
 
@@ -80,6 +80,31 @@ case $dmenu_keywords in
 
         _open "https://www.archlinux.org/packages/?sort=&q="$search_text"&maintainer=&flagged="
         ;;
+
+    lyrics)
+        # googling currently played song's lyrics (what a shame spotify still lacks of lyrics feature!)
+        song_artist=$(dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'c&&!--c;/"xesam:artist"/{c=2}' | awk '{ gsub("string",""); gsub("\042",""); gsub(/^[ \t]+/,""); print $0 }')
+
+        song_title=$(dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:title"/{f=1}')
+
+        song_query=$(echo $song_artist $song_title)
+
+        search_text=$(sed -e s"/\s/+/g" <<< $song_query)
+
+        echo $search_text
+
+        _open "https://www.google.com/search?q="$search_text+$dmenu_keywords""
+        ;;
+
+    album*)
+        # seach albums on spotify
+        album_query=$(sed -e s"/album//;s/\s/+/g" <<< $dmenu_keywords)
+        album="$(curl -s "https://api.spotify.com/v1/search?q=$album_query&type=album" | grep --color=never -E -o "spotify:album:[a-zA-Z0-9]+" -m 1)"
+        echo $album_query
+        echo $album
+
+        dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$album"
+
 
 esac
 
