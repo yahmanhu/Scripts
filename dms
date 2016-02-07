@@ -81,7 +81,6 @@ case $dmenu_keywords in
         ;;
 
     lyrics)
-        # googling currently played song's lyrics (what a shame spotify still lacks of lyrics feature!)
         song_artist=$(dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'c&&!--c;/"xesam:artist"/{c=2}' | awk '{ gsub("string",""); gsub("\042",""); gsub(/^[ \t]+/,""); print $0 }')
 
         song_title=$(dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:title"/{f=1}')
