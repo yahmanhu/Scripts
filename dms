@@ -91,8 +91,6 @@ case $dmenu_keywords in
 
         search_text=$(sed -e s"/\s/+/g" <<< $song_query)
 
-        echo $search_text
-
         _open "https://www.google.com/search?q="$search_text+$dmenu_keywords""
         ;;
 
@@ -100,8 +98,6 @@ case $dmenu_keywords in
         # seach albums on spotify
         album_query=$(sed -e s"/album//;s/\s/+/g" <<< $dmenu_keywords)
         album="$(curl -s "https://api.spotify.com/v1/search?q=$album_query&type=album" | grep --color=never -E -o "spotify:album:[a-zA-Z0-9]+" -m 1)"
-        echo $album_query
-        echo $album
 
         dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$album"
 
