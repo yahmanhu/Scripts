@@ -1,0 +1,8 @@
+#!/bin/bash
+# Open spotify albums from dmenu
+
+albums_file=~/bin/albums
+keyword=$(cat $albums_file | awk '{print $1}' | dmenu -i -l 10 -fn 'Droid Sans Mono-12')
+spotify_uri=$(awk '/'"$keyword"'/{print $2}' $albums_file)
+
+dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
