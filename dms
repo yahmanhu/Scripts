@@ -16,7 +16,7 @@ _keywords(){
     done
 }
 
-dmenu_keywords=$(_keywords | dmenu -l 5 -i -fn 'Droid Sans Mono 12' )
+dmenu_keywords=$(_keywords | dmenu -l 5 -i -fn 'Droid Sans Mono-12' )
 
 echo $dmenu_keywords
 
