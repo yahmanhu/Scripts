@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path=$(find ~ -iname $1\*)
+path=$(find ~/downloads -iname $1\*)
 
 if [[ $path == *".mp3"* ]] || [[ $path == *".mkv"* ]] || [[ $path == *".mp4"* ]]; then
     mpv $path

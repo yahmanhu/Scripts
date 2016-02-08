@@ -1,8 +1,8 @@
 #!/bin/bash
 # Open favorite bookmarks in dmenu
 
-bookmarks_file=~/bookmarks
-keyword=$(cat $bookmarks_file | awk '{print $1}' | dmenu -fn 'Droid Sans Mono-12')
+bookmarks_file=~/scripts/bookmarks
+keyword=$( awk '{print $1}' $bookmarks_file | dmenu -fn 'Droid Sans Mono-12')
 selected_link=$(awk '/'"$keyword"'/{print $2}' $bookmarks_file)
 
 xdg-open $selected_link

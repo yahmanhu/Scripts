@@ -1,0 +1,167 @@
+#!/bin/bash
+#
+#                                      _
+#         ___ _ __   ___ _ __ ___   __| |
+#        / __| '_ \ / __| '_ ` _ \ / _` |
+#        \__ | |_) | (__| | | | | | (_| |
+#        |___| .__/ \___|_| |_| |_|\__,_|
+#             |_|
+#
+#                    hblock
+#               Created by: spcmd
+#           http://spcmd.github.io
+#           https://github.com/spcmd
+#           https://gist.github.com/spcmd
+#
+#
+#
+#   hblock is a simple bash script which allows
+#   you to block domains easily by using the /etc/hosts file
+#   hblock also allows you to download (and update) several hosts
+#   files and build a single hosts file of them.
+#
+#   You can download hosts files from: http://hosts-file.net/?s=Download
+#   hblock can use only plain text hosts files!
+#
+#   You can get/install a hosts file by the following command:
+#       hblock -g <url-to-plain-text-hosts-file>
+#   Example:
+#       hblock -g http://hosts-file.net/ad_servers.txt
+#
+#   You can update all of the hosts files which reside in the $DIR_LISTS directory
+#   with the the following command:
+#       hblock -u
+#   If any of these files gets updated, you need to rebuild the /etc/hosts
+#   file with the following command:
+#       hblock -b
+#   For further information, use the help:
+#       hblock -h
+#
+#   Dependencies: wget
+
+# Configuration
+DIR_CONFIG=$HOME/.config/hblock
+DIR_LISTS=$DIR_CONFIG/lists
+FILE_MY_BLOCKS=$DIR_LISTS/my_blocks.txt
+FILE_LOCALHOST=$DIR_LISTS/localhost.txt
+FILE_HOSTSLIST_URLS=$DIR_CONFIG/hostlist_urls
+FILE_LASTBUILD=$DIR_CONFIG/lastbuild
+
+# Create default config
+
+if [[ ! -d $DIR_CONFIG ]]; then
+    echo "==> Creating default config"
+    mkdir -p "$DIR_LISTS"
+    echo "#<ip-address>	<hostname.domain.org>	<hostname>" > "$FILE_LOCALHOST"
+    echo "127.0.0.1	localhost.localdomain	localhost" >> "$FILE_LOCALHOST"
+    echo "::1		localhost.localdomain	localhost" >> "$FILE_LOCALHOST"
+    echo "Done."
+    echo "==> Creating backup of the original hosts file from /etc"
+    cp /etc/hosts "$DIR_CONFIG"/etc-hosts.backup
+    echo "Done. /etc/hosts saved to "$DIR_CONFIG"/etc-hosts.backup"
+    echo -e "\n"
+fi
+
+add() {
+    echo "127.0.0.1 $domain" | sudo tee --append /etc/hosts > /dev/null #silent
+    echo "127.0.0.1 $domain" >> $FILE_MY_BLOCKS
+    echo "==> Added: $domain"
+}
+
+remove() {
+    sudo sed -i "/\<$domain\>/d" /etc/hosts
+    sed -i "/\<$domain\>/d" "$FILE_MY_BLOCKS"
+    echo "==> Removed: $domain"
+}
+
+update() {
+    echo "==> Updating hosts files..."
+    wget --quiet --show-progress -i "$FILE_HOSTSLIST_URLS" -N -P "$DIR_LISTS" && echo "Done."
+}
+
+build() {
+    echo "==> Building /etc/hosts"
+    cat "$DIR_LISTS"/* | sudo tee /etc/hosts > /dev/null #silent
+    sudo sed -i 's/\r$//' /etc/hosts
+    echo "$(date +'%Y-%b-%d %H:%M')" > $FILE_LASTBUILD
+    echo "Done."
+}
+
+check(){
+    echo "==> Checking for: $keyword"
+    grep --color=always "$keyword" /etc/hosts
+}
+
+get(){
+    wget --quiet --show-progress -N -P "$DIR_LISTS" "$url"
+    echo "$url" >> "$FILE_HOSTSLIST_URLS"
+}
+
+delete_hostsfile() {
+    if [[ ! -e "$DIR_LISTS/$hostsfile" ]]; then
+        echo "==> Error: Invalid name, no such hosts list filename. Use '$(basename $0) -f' to list hosts lists."
+    else
+        echo "==> Removing hosts file: $hostsfile"
+        sed -i "/\<$hostsfile\>/d" "$FILE_HOSTSLIST_URLS"
+        rm "$DIR_LISTS"/"$hostsfile"
+        echo "Done."
+    fi
+}
+
+usage() {
+cat << EOF
+Configuration: edit the hblock shell script file and set the used directories as you wish.
+By default hblock uses the ~/.config/hblock directory to store the block lists.
+The final (built) hosts file of course will be the /etc/hosts.
+
+You can download hosts files from: http://hosts-file.net/?s=Download (use the individual plain text files!)
+Copy the link that points to the plain text file and use this command to download it as a blocklist for hblock:
+    hlbock -g <url-to-plain-text-hosts-file>
+For example:
+    hblock -g http://hosts-file.net/ad_servers.txt
+
+Usage: hblock [option] <domain|url|filename>
+
+Options:
+    -a, --add <domain>                  Block a <domain>
+    -r, --remove <domain>               Remove a <domain>
+    -l, --list                          List manually blocked domains
+    -c, --check <domain>                Check whether the domain is blocked (is in the /etc/hosts file)
+    -g, --get-hostsfile <url>           Download a hosts file (need to be a plain text file!)
+    -d, --delete-hostsfile <filename>   Delete the <filename> hosts file from \$DIR_LISTS directory (use the filename only, don't include the path!)
+    -f, --list-hostsfiles               List the url's of the downloaded hosts files
+    -u, --update-hostfiles              Update downloaded hosts files
+    -b, --build                         Build the /etc/hosts file from all downloaded hosts and manual blocked domains
+    -ub, --update-build                 Update hosts files and build them
+    -h, --help                          This help
+EOF
+}
+
+case "$1" in
+    --add|-a) domain=$2 add;;
+
+    --remove|-r) domain=$2 remove;;
+
+    --list|-l) cat $FILE_MY_BLOCKS;;
+
+    --check|-c) keyword=$2 check;;
+
+    --get-hostsfile|-g) url=$2 get;;
+
+    --delete-hostsfile|-d) hostsfile=$2 remove_hostsfile;;
+
+    --list-hostsfiles|-f) cat "$FILE_HOSTSLIST_URLS";;
+
+    --update-hostfiles|-u) update;;
+
+    --build|-b) build;;
+
+    --update-build|-ub) update && build;;
+
+    --help|-h|*)
+    if [[ -f $FILE_LASTBUILD ]]; then
+        echo "hblock: /etc/hosts last build date: $(cat $FILE_LASTBUILD)"
+    fi
+    usage
+    ;;
+esac
