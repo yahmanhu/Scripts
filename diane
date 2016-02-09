@@ -61,31 +61,50 @@ add_new_task(){
 
 flag_finished_task(){
 
+    while true; do
+
     readarray content_array < $diane_file
 
-    for tasks in ${!content_array[@]}; do
+    if [[ ${content_array[@]} > 0 ]]; then
 
-        echo -e $tasks ${content_array[$tasks]}
+        for tasks in ${!content_array[@]}; do
 
-    done
+            echo -e $tasks ${content_array[$tasks]}
+
+        done
+
+    else
+
+        echo "There are no tasks to show."
+        break
+
+    fi
 
     read task_index
 
-    if [[ $task_index =~ ^[0-9]+$ ]]; then
+    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
         selected_task=${content_array[$task_index]}
-
-        echo -e $italic$selected_task$DONE
 
         replace_task=$(echo -e $selected_task)
 
         sed -i s"/$replace_task/& $DONE/" "$diane_file"
+
+    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
+
+        echo "not a valid index"
+
+    elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+
+        break
 
     else
 
         echo "not a valid index"
 
     fi
+
+done
 
 }
 
@@ -97,17 +116,28 @@ remove_finished_task(){
 
 remove_task(){
 
+    while true; do
+
     readarray content_array < $diane_file
 
-    for tasks in ${!content_array[@]}; do
+    if [[ ${content_array[@]} > 0 ]]; then
 
-        echo -e $tasks ${content_array[$tasks]}
+        for tasks in ${!content_array[@]}; do
 
-    done
+            echo -e $tasks ${content_array[$tasks]}
+
+        done
+
+    else
+
+        echo "There are no tasks to show."
+        break
+
+    fi
 
     read task_index
 
-    if [[ $task_index =~ ^[0-9]+$ ]]; then
+    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
         selected_task=${content_array[$task_index]}
 
@@ -117,11 +147,20 @@ remove_task(){
 
         sed -i "/$remove_task/d" $diane_file
 
+    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
+
+        echo "not a valid index"
+
+    elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+
+        break
+
     else
 
         echo "not a valid index"
 
     fi
+done
 
 }
 
@@ -138,10 +177,11 @@ Options:
         -clr    -- remove all content from file
         -e      -- edit file
         -r      -- remove file
-        -ff     -- selec task and flag it as finished (@done) in file 
+        -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q' then press Return
+
         -sf     -- show only finished/flagged (@done) tasks
         -rf     -- remove all finished/flagged (@done) tasks from file 
-        -rt     -- remove selected task from file
+        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press Return
         -h)     -- show this help page
 
 EOF

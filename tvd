@@ -41,7 +41,7 @@ date_today="$(date +'%Y-%m-%d')"
 date_tomorrow="$(date +'%Y-%m-%d' -d tomorrow)"
 
 # array of channels; used for search_multi()
-channels=("cool" "tv2" "rtl_klub" "viasat3" "viasat6" "super_tv2" "film_p" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "rtl_2" "comedy_central" "m1" "m2" "duna_televizio" "duna_world")
+channels=("tv2" "super_tv2" "rtl_klub" "viasat3" "viasat6" "cool" "comedy_central" "film_p" "film_cafe" "pro4" "paramount" "story4")
 
 # ===========================================================================
 #   Functions
@@ -88,19 +88,23 @@ show_today() {
     else
         time_regex_format=$time_regex
     fi
+    
+    # if no channel name given, show all from the channels array
+    if [[ -z $tv ]]; then
+        tv="${channels[@]}"
+    fi
+        for tv in $tv;
+            do
+                lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
+                    | awk "/$date_today/ {print;flag=1;next} /$date_tomorrow/{flag=0} flag {if (NF > 0 && /$time_regex_format/) print}" \
+                    | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
+                    | highlight_keywords
 
-    for tv in $tv;
-        do
-            lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
-                | awk "/$date_today/ {print;flag=1;next} /$date_tomorrow/{flag=0} flag {if (NF > 0 && /$time_regex_format/) print}" \
-                | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
-                | highlight_keywords
-
-            # use gap?
-            if [[ $use_gap = "yes" ]]; then
-                echo "";
-            fi
-        done
+                # use gap?
+                if [[ $use_gap = "yes" ]]; then
+                    echo "";
+                fi
+            done
 }
 
 # -----------------------------
@@ -231,7 +235,7 @@ EOF
 
 if [[ $# == 0 ]]; then
 
-    usage
+    show_today | less -ri
 
 else
 
