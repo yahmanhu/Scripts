@@ -4,10 +4,17 @@
 diane_file=~/diane
 date=$(date +"<%m-%d-%Y-%H:%M:%S>")
 IFS=$'\n'
+
 italic=$'\e[3m'
 normal=$'\e[8m'
+bold=$'\e[1m'
+reset=$'\e[0m'
+green=$'\e[32m'
+red=$'\e[31m'
+
 DONE="@done"
 show_finished_task="true"
+message="There is no task to show."
 
 create_diane(){
 
@@ -69,22 +76,24 @@ flag_finished_task(){
 
         for tasks in ${!content_array[@]}; do
 
-            echo -e $tasks ${content_array[$tasks]}
+            echo -e $bold$green$tasks$reset ${content_array[$tasks]}
 
         done
 
     else
 
-        echo "There are no tasks to show."
+        echo $message
         break
 
     fi
 
-    read task_index
+    read -s -n1 task_index
 
     if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
         selected_task=${content_array[$task_index]}
+
+        echo -e $selected_task $italic@done $reset"\n"
 
         replace_task=$(echo -e $selected_task)
 
@@ -108,6 +117,68 @@ done
 
 }
 
+unflag_finished_task(){
+
+    while true; do
+    readarray content_array < $diane_file
+
+    finished_tasks=()
+
+    if [[ ${content_array[@]} > 0 ]]; then
+
+        for lines in ${content_array[@]}; do
+
+            if [[ $lines == *"$DONE"* ]]; then
+
+                finished_tasks+=($lines)
+            fi
+
+        done
+
+        #echo ${!finished_tasks[@]}
+        for selected_task in ${!finished_tasks[@]}; do
+            echo $selected_task ${finished_tasks[$selected_task]}
+        done
+
+    fi
+
+    read -s -n1 task_index
+
+    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#finished_tasks[@]} )); then
+
+        selected=${finished_tasks[$task_index]}
+
+        echo -e $selected
+
+        #replace_task=$(echo -e $selected)
+        replace_task=${selected%$DONE}
+        #echo $replace_task
+
+        sed -i s"/$selected/$replace_task/" "$diane_file"
+
+    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
+
+        echo "not a valid index"
+
+    elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+
+        break
+
+    else
+
+        echo "not a valid index"
+
+    fi
+
+done
+
+
+
+
+
+
+}
+
 remove_finished_task(){
 
     sed -i "/$DONE/d" $diane_file
@@ -124,18 +195,19 @@ remove_task(){
 
         for tasks in ${!content_array[@]}; do
 
-            echo -e $tasks ${content_array[$tasks]}
+            #echo -e $tasks ${content_array[$tasks]}
+            echo -e $bold$red$tasks$reset ${content_array[$tasks]}
 
         done
 
     else
 
-        echo "There are no tasks to show."
+        echo $message
         break
 
     fi
 
-    read task_index
+    read -s -n1 task_index
 
     if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
@@ -181,7 +253,7 @@ Options:
 
         -sf     -- show only finished/flagged (@done) tasks
         -rf     -- remove all finished/flagged (@done) tasks from file 
-        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press Return
+        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q'.
         -h)     -- show this help page
 
 EOF
@@ -193,7 +265,15 @@ case $1 in
     "") 
         if [[ -e $diane_file ]]; then
 
-            read_diane
+            if [[ -s $diane_file ]]; then
+
+                read_diane
+
+            else
+
+                echo $message
+
+            fi
 
         else
 
@@ -206,6 +286,7 @@ case $1 in
     -e) edit_diane;;
     -r) remove_diane;;
     -ff) flag_finished_task;;
+    -uf) unflag_finished_task;;
     -sf) show_finished_tasks;;
     -rf) remove_finished_task;;
     -rt) remove_task;;
