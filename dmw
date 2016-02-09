@@ -3,6 +3,11 @@
 
 file_name=$( (find ~/downloads -iname "*.mkv" && find ~/downloads -iname "*.mp4") | awk -F "/" '{print $NF}' | dmenu -i -l 20 -fn 'Droid Sans Mono-12' )
 
+if [[ "$file_name" == *[\[\]]* ]]; then
+    echo "contains"
+    file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name)
+
+fi
 selected_file=$(find -iname $file_name)
 
 mpv $selected_file > /dev/null
