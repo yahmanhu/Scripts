@@ -9,12 +9,14 @@ italic=$'\e[3m'
 normal=$'\e[8m'
 bold=$'\e[1m'
 reset=$'\e[0m'
+
 green=$'\e[32m'
 red=$'\e[31m'
+yellow=$'\e[33m'
 
 DONE="@done"
-show_finished_task="true"
 message="There is no task to show."
+show_finished_task="true"
 
 create_diane(){
 
@@ -24,7 +26,18 @@ create_diane(){
 
 show_finished_tasks(){
 
-    cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
+    finished=$(cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/")
+
+    if [[ -z $finished ]]; then
+
+        echo -e "There is no finished task yet."
+
+    else
+
+        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
+
+    fi
+
 
 }
 
@@ -33,7 +46,8 @@ read_diane(){
     if [[ $show_finished_task == "true" ]]; then
         
         sed "/$DONE/d" $diane_file
-        show_finished_tasks
+        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
+        #show_finished_tasks
 
     elif [[ $show_finished_task == "false" ]]; then
         
@@ -69,29 +83,36 @@ add_new_task(){
 flag_finished_task(){
 
     while true; do
-
     readarray content_array < $diane_file
 
-    if [[ ${content_array[@]} > 0 ]]; then
+    unfinished_tasks=()
 
-        for tasks in ${!content_array[@]}; do
+    for lines in ${content_array[@]}; do
 
-            echo -e $bold$green$tasks$reset ${content_array[$tasks]}
+        if [[ $lines != *"$DONE"* ]]; then
+
+            unfinished_tasks+=($lines)
+
+        fi
 
         done
 
-    else
+    if (( "${#unfinished_tasks[@]}" == 0 )); then
 
-        echo $message
-        break
+        echo -e "Every task are finished."
+        break 2
 
-    fi
+        fi
+
+        for selected_task in ${!unfinished_tasks[@]}; do
+            echo $green$bold$selected_task$reset ${unfinished_tasks[$selected_task]}
+        done
 
     read -s -n1 task_index
 
-    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
+    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unfinished_tasks[@]} )); then
 
-        selected_task=${content_array[$task_index]}
+        selected_task=${unfinished_tasks[$task_index]}
 
         echo -e $selected_task $italic@done $reset"\n"
 
@@ -99,7 +120,7 @@ flag_finished_task(){
 
         sed -i s"/$replace_task/& $DONE/" "$diane_file"
 
-    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
+    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unfinished_tasks[@]} )); then
 
         echo "not a valid index"
 
@@ -124,23 +145,26 @@ unflag_finished_task(){
 
     finished_tasks=()
 
-    if [[ ${content_array[@]} > 0 ]]; then
+    for lines in ${content_array[@]}; do
 
-        for lines in ${content_array[@]}; do
+        if [[ $lines == *"$DONE"* ]]; then
 
-            if [[ $lines == *"$DONE"* ]]; then
+            finished_tasks+=($lines)
 
-                finished_tasks+=($lines)
-            fi
+        fi
 
         done
 
-        #echo ${!finished_tasks[@]}
+    if (( "${#finished_tasks[@]}" == 0 )); then
+
+        echo -e "There is no finished task yet."
+        break 2
+
+        fi
+
         for selected_task in ${!finished_tasks[@]}; do
-            echo $selected_task ${finished_tasks[$selected_task]}
+            echo $yellow$bold$selected_task$reset ${finished_tasks[$selected_task]}
         done
-
-    fi
 
     read -s -n1 task_index
 
@@ -148,13 +172,13 @@ unflag_finished_task(){
 
         selected=${finished_tasks[$task_index]}
 
-        echo -e $selected
+        replace_task=${selected% $DONE}
 
-        #replace_task=$(echo -e $selected)
-        replace_task=${selected%$DONE}
-        #echo $replace_task
+        echo -e flag removed: "$replace_task"
 
         sed -i s"/$selected/$replace_task/" "$diane_file"
+
+        echo -e "\n"
 
     elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
 
@@ -171,11 +195,6 @@ unflag_finished_task(){
     fi
 
 done
-
-
-
-
-
 
 }
 
@@ -195,7 +214,6 @@ remove_task(){
 
         for tasks in ${!content_array[@]}; do
 
-            #echo -e $tasks ${content_array[$tasks]}
             echo -e $bold$red$tasks$reset ${content_array[$tasks]}
 
         done
@@ -249,12 +267,12 @@ Options:
         -clr    -- remove all content from file
         -e      -- edit file
         -r      -- remove file
-        -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q' then press Return
-
+        -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q'
+        -uf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q'
         -sf     -- show only finished/flagged (@done) tasks
         -rf     -- remove all finished/flagged (@done) tasks from file 
-        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q'.
-        -h)     -- show this help page
+        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q'
+        -h      -- show this help page
 
 EOF
 
