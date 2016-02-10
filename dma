@@ -2,10 +2,15 @@
 # Open spotify albums from dmenu
 
 albums_file=~/scripts/albums
-keyword=$( awk '{gsub("_"," ",$1); print $1}' $albums_file | dmenu -i -l 10 -fn 'Droid Sans Mono-12')
+
+keyword=$( awk '{gsub("_"," ",$1); print $1}' $albums_file | dmenu -i -l 10 -fn 'Droid Sans Mono-12' -nb "#181818" -nf "#ccc" -sf "#181818" -sb "#1DB954")
 
 keyword=$(sed -e s"/ /_/g" <<< "$keyword")
 
 spotify_uri=$(awk '/'"$keyword"'/{print $2}' $albums_file)
 
-dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
+if [[ -z $keyword ]]; then
+    exit
+else
+    dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
+fi
