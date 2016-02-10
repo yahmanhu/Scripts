@@ -84,7 +84,8 @@ add_new_task_with_label(){
 
     #label=$(echo $label | awk '{print toupper($0)}')
     
-    echo -e $(echo -e $date $label $input | awk '{}') >> $diane_file
+    echo "$date $label$input" >> $diane_file
+    sed -i 's/"'$label'"/"'$green'"&/g' $diane_file
 
 }
 
