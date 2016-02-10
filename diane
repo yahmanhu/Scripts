@@ -80,6 +80,14 @@ add_new_task(){
 
 }
 
+add_new_task_with_label(){
+
+    #label=$(echo $label | awk '{print toupper($0)}')
+    
+    echo -e $(echo -e $date $label $input | awk '{}') >> $diane_file
+
+}
+
 flag_finished_task(){
 
     while true; do
@@ -309,6 +317,7 @@ case $1 in
     -rf) remove_finished_task;;
     -rt) remove_task;;
     -h) help;;
+    -l) label=$2 shift 1; input=$@ add_new_task_with_label;;
     *) input=$@ add_new_task;;
 
 esac
