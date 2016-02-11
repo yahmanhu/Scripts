@@ -8,11 +8,13 @@ IFS=$'\n'
 italic=$'\e[3m'
 normal=$'\e[8m'
 bold=$'\e[1m'
+inverted=$'\e[7m'
 reset=$'\e[0m'
 
 green=$'\e[32m'
 red=$'\e[31m'
 yellow=$'\e[33m'
+blue=$'\e[34m'
 
 DONE="@done"
 message="There is no task to show."
@@ -26,7 +28,7 @@ create_diane(){
 
 show_finished_tasks(){
 
-    finished=$(cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/")
+    finished=$(cat $diane_file | grep "$DONE")
 
     if [[ -z $finished ]]; then
 
@@ -34,8 +36,7 @@ show_finished_tasks(){
 
     else
 
-        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
-
+        cat $diane_file | grep "$DONE"
     fi
 
 
@@ -46,8 +47,7 @@ read_diane(){
     if [[ $show_finished_task == "true" ]]; then
         
         sed "/$DONE/d" $diane_file
-        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
-        #show_finished_tasks
+        cat $diane_file | grep "$DONE"
 
     elif [[ $show_finished_task == "false" ]]; then
         
@@ -82,10 +82,10 @@ add_new_task(){
 
 add_new_task_with_label(){
 
-    #label=$(echo $label | awk '{print toupper($0)}')
     
-    echo "$date $label$input" >> $diane_file
-    sed -i 's/"'$label'"/"'$green'"&/g' $diane_file
+    label=$(echo $label | awk '{print toupper($0)}')
+    echo -e $date $label $input >> $diane_file
+    sed -i -e s"/$label/$inverted$bold$yellow$label$reset/" $diane_file
 
 }
 
@@ -123,9 +123,17 @@ flag_finished_task(){
 
         selected_task=${unfinished_tasks[$task_index]}
 
-        echo -e $selected_task $italic@done $reset"\n"
+        echo -e $selected_task @done $reset"\n"
+
+        if [[ $selected_task == *[!#\$%^\&*_+]* ]]; then
+
+            replace_task=$(echo $selected_task | sed "s/\^/\\\^/g;s/\[/\\\[/g")
+
+        else
 
         replace_task=$(echo -e $selected_task)
+
+    fi
 
         sed -i s"/$replace_task/& $DONE/" "$diane_file"
 
@@ -181,9 +189,21 @@ unflag_finished_task(){
 
         selected=${finished_tasks[$task_index]}
 
-        replace_task=${selected% $DONE}
+        if [[ $selected == *[!#\$%^\&*_+]* ]]; then
 
+            echo -e flag removed: "$selected"
+
+            selected=$(echo $selected | sed "s/\^/\\\^/g;s/\[/\\\[/g")
+
+            replace_task=${selected% $DONE}
+
+        else
+
+        replace_task=${selected% $DONE}
         echo -e flag removed: "$replace_task"
+
+        fi
+
 
         sed -i s"/$selected/$replace_task/" "$diane_file"
 
@@ -242,7 +262,16 @@ remove_task(){
 
         echo -e removed: "$selected_task"
 
+        if [[ $selected_task == *[!#\$%^\&*_+]* ]]; then
+
+            echo removed: $selected_task
+            remove_task=$(echo $selected_task | sed "s/\^/\\\^/g;s/\[/\\\[/g")
+
+        else
+
         remove_task=$(echo -e $selected_task)
+
+        fi
 
         sed -i "/$remove_task/d" $diane_file
 
@@ -318,7 +347,7 @@ case $1 in
     -rf) remove_finished_task;;
     -rt) remove_task;;
     -h) help;;
-    -l) label=$2 shift 1; input=$@ add_new_task_with_label;;
+    -l) label=$2 ; input=$3 add_new_task_with_label;;
     *) input=$@ add_new_task;;
 
 esac
