@@ -5,16 +5,27 @@ diane_file=~/diane
 date=$(date +"<%m-%d-%Y-%H:%M:%S>")
 IFS=$'\n'
 
-italic=$'\e[3m'
 normal=$'\e[8m'
 bold=$'\e[1m'
+italic=$'\e[3m'
+underlined=$'\e[4m'
 inverted=$'\e[7m'
+blink=$'\e[5m'
 reset=$'\e[0m'
 
 green=$'\e[32m'
 red=$'\e[31m'
 yellow=$'\e[33m'
 blue=$'\e[34m'
+red=$'\e[31m'
+cyan=$'\e[36m'
+magenta=$'\e[35m'
+gray=$'\e[37m'
+dark_gray=$'\e[90m'
+white=$'\e[97m'
+
+label_color=$green
+label_format=$bold$inverted
 
 DONE="@done"
 message="There is no task to show."
@@ -36,7 +47,7 @@ show_finished_tasks(){
 
     else
 
-        cat $diane_file | grep "$DONE"
+        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
     fi
 
 
@@ -47,7 +58,8 @@ read_diane(){
     if [[ $show_finished_task == "true" ]]; then
         
         sed "/$DONE/d" $diane_file
-        cat $diane_file | grep "$DONE"
+        #cat $diane_file | grep "$DONE"
+        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
 
     elif [[ $show_finished_task == "false" ]]; then
         
@@ -85,7 +97,8 @@ add_new_task_with_label(){
     
     label=$(echo $label | awk '{print toupper($0)}')
     echo -e $date $label $input >> $diane_file
-    sed -i -e s"/$label/$inverted$bold$yellow$label$reset/" $diane_file
+    #sed -i -e s"/$label/$inverted$bold$yellow$label$reset/" $diane_file
+    sed -i -e s"/$label/$label_format$label_color$label$reset/" $diane_file
 
 }
 
@@ -204,7 +217,6 @@ unflag_finished_task(){
 
         fi
 
-
         sed -i s"/$selected/$replace_task/" "$diane_file"
 
         echo -e "\n"
@@ -310,6 +322,7 @@ Options:
         -sf     -- show only finished/flagged (@done) tasks
         -rf     -- remove all finished/flagged (@done) tasks from file 
         -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q'
+        -l      -- add label to note. You must write your note after the label between 'single quotes' or "double quotes". 
         -h      -- show this help page
 
 EOF
@@ -346,8 +359,8 @@ case $1 in
     -sf) show_finished_tasks;;
     -rf) remove_finished_task;;
     -rt) remove_task;;
-    -h) help;;
     -l) label=$2 ; input=$3 add_new_task_with_label;;
+    -h) help;;
     *) input=$@ add_new_task;;
 
 esac
