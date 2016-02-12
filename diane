@@ -39,7 +39,7 @@ create_diane(){
 
 show_finished_tasks(){
 
-    finished=$(cat $diane_file | grep "$DONE")
+    finished=$(grep "$DONE" $diane_file)
 
     if [[ -z $finished ]]; then
 
@@ -47,7 +47,7 @@ show_finished_tasks(){
 
     else
 
-        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
+        grep "$DONE" $diane_file | sed "s/^.*/$italic&/"
     fi
 
 
@@ -58,8 +58,7 @@ read_diane(){
     if [[ $show_finished_task == "true" ]]; then
         
         sed "/$DONE/d" $diane_file
-        #cat $diane_file | grep "$DONE"
-        cat $diane_file | grep "$DONE" | sed "s/^.*/$italic&/"
+         grep "$DONE" $diane_file | sed "s/^.*/$italic&/"
 
     elif [[ $show_finished_task == "false" ]]; then
         
@@ -94,10 +93,15 @@ add_new_task(){
 
 add_new_task_with_label(){
 
+    case $label in
+
+        note) label_format=$inverted$bold ; label_color=$white;;
+        diane) label_format=$inverted$bold ; label_color=$green;;
+        *) label_format=$inverted$bold ; label_color=$yellow
+    esac
     
     label=$(echo $label | awk '{print toupper($0)}')
     echo -e $date $label $input >> $diane_file
-    #sed -i -e s"/$label/$inverted$bold$yellow$label$reset/" $diane_file
     sed -i -e s"/$label/$label_format$label_color$label$reset/" $diane_file
 
 }
@@ -130,7 +134,7 @@ flag_finished_task(){
             echo $green$bold$selected_task$reset ${unfinished_tasks[$selected_task]}
         done
 
-    read -s -n1 task_index
+    read task_index
 
     if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unfinished_tasks[@]} )); then
 
@@ -196,7 +200,7 @@ unflag_finished_task(){
             echo $yellow$bold$selected_task$reset ${finished_tasks[$selected_task]}
         done
 
-    read -s -n1 task_index
+    read task_index
 
     if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#finished_tasks[@]} )); then
 
@@ -266,7 +270,7 @@ remove_task(){
 
     fi
 
-    read -s -n1 task_index
+    read task_index
 
     if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
