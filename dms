@@ -1,7 +1,7 @@
 #!/bin/bash
 # Simple dmenu search tool
 
-keywords=("Google" "Youtube" "KAT" "AUR" "imdb" "Duck" "wiki" "felirat" "rarbg")
+keywords=("Google" "Youtube" "KAT" "AUR" "imdb" "Duck" "wiki" "felirat" "rarbg" "~" "/")
 
 _open(){
 
@@ -78,6 +78,12 @@ case $dmenu_keywords in
         search_text=$(sed -e s"/AUR//;s/\s//g" <<< $dmenu_keywords)
 
         _open "https://www.archlinux.org/packages/?sort=&q="$search_text"&maintainer=&flagged="
+        ;;
+        
+
+    ~*)
+        search_result=$(sed -e s"/~//" <<< $dmenu_keywords)
+        find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12' | xsel -b
         ;;
 
     *) # if no search engine selected, then search automatically on google
