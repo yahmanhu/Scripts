@@ -47,7 +47,8 @@ show_finished_tasks(){
 
     else
 
-        grep "$DONE" $diane_file | sed "s/^.*/$italic&/"
+         grep "$DONE" $diane_file  | awk '{$1="[3m"$1; $2=$2"[0m[3m"; print $0}' 
+
     fi
 
 
@@ -58,7 +59,8 @@ read_diane(){
     if [[ $show_finished_task == "true" ]]; then
         
         sed "/$DONE/d" $diane_file
-         grep "$DONE" $diane_file | sed "s/^.*/$italic&/"
+        echo -e "\n$italic"Finished"$reset"
+        grep "$DONE" $diane_file  | awk '{$1="[3m"$1; $2=$2"[0m[3m"; print $0}' 
 
     elif [[ $show_finished_task == "false" ]]; then
         
@@ -97,12 +99,31 @@ add_new_task_with_label(){
 
         note) label_format=$inverted$bold ; label_color=$white;;
         diane) label_format=$inverted$bold ; label_color=$green;;
-        *) label_format=$inverted$bold ; label_color=$yellow
+        *) label_format=$label_format ; label_color=$label_color
+
     esac
     
     label=$(echo $label | awk '{print toupper($0)}')
     echo -e $date $label $input >> $diane_file
     sed -i -e s"/$label/$label_format$label_color$label$reset/" $diane_file
+
+}
+
+
+filter_label(){
+
+        readarray content_array < $diane_file
+        labels=()
+        
+        for lines in ${content_array[@]}; do
+
+            if [[ $lines == *"["* ]]; then
+
+                labels+=($lines)
+            fi
+        done
+
+        printf '%s\n' "${labels[@]}" | grep -i $filter
 
 }
 
@@ -142,7 +163,7 @@ flag_finished_task(){
 
         echo -e $selected_task @done $reset"\n"
 
-        if [[ $selected_task == *[!#\$%^\&*_+]* ]]; then
+        if [[ $selected_task == *"["* ]]; then
 
             replace_task=$(echo $selected_task | sed "s/\^/\\\^/g;s/\[/\\\[/g")
 
@@ -206,7 +227,7 @@ unflag_finished_task(){
 
         selected=${finished_tasks[$task_index]}
 
-        if [[ $selected == *[!#\$%^\&*_+]* ]]; then
+        if [[ $selected == *"["* ]]; then
 
             echo -e flag removed: "$selected"
 
@@ -243,7 +264,7 @@ done
 
 }
 
-remove_finished_task(){
+remove_finished_tasks(){
 
     sed -i "/$DONE/d" $diane_file
 
@@ -278,9 +299,8 @@ remove_task(){
 
         echo -e removed: "$selected_task"
 
-        if [[ $selected_task == *[!#\$%^\&*_+]* ]]; then
+        if [[ $selected_task == *"["* ]]; then
 
-            echo removed: $selected_task
             remove_task=$(echo $selected_task | sed "s/\^/\\\^/g;s/\[/\\\[/g")
 
         else
@@ -321,15 +341,22 @@ Options:
         -clr    -- remove all content from file
         -e      -- edit file
         -r      -- remove file
-        -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q'
-        -uf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q'
+        -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
+        -uf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
         -sf     -- show only finished/flagged (@done) tasks
         -rf     -- remove all finished/flagged (@done) tasks from file 
-        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q'
-        -l      -- add label to note. You must write your note after the label between 'single quotes' or "double quotes". 
+        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press 'Return'
+        -l      -- add label to note. You must write your note after the label between 'single quotes' or "double quotes" 
+        -fl     -- filter labels
         -h      -- show this help page
 
 EOF
+
+}
+
+whoami(){
+
+echo -e Diane is a mysterious woman Dale Cooper addresses all of his tapes to in the American television serial drama "$italic"Twin Peaks$reset."\n"See: http://twinpeaks.wikia.com/wiki/Diane
 
 }
 
@@ -361,9 +388,11 @@ case $1 in
     -ff) flag_finished_task;;
     -uf) unflag_finished_task;;
     -sf) show_finished_tasks;;
-    -rf) remove_finished_task;;
+    -rf) remove_finished_tasks;;
     -rt) remove_task;;
     -l) label=$2 ; input=$3 add_new_task_with_label;;
+    -fl) filter=$2 filter_label;;
+    -whoami) whoami;;
     -h) help;;
     *) input=$@ add_new_task;;
 
