@@ -1,7 +1,7 @@
 #!/bin/bash
 # Simple dmenu search tool
 
-keywords=("google" "yt" "kat" "aur" "imdb" "duck" "wiki" "felirat" "rarbg" "~")
+keywords=("google" "yt" "kat" "aur" "imdb" "duck" "wiki" "felirat" "rarbg" "~" "open")
 
 _open(){
 
@@ -68,7 +68,7 @@ case $dmenu_keywords in
         _open "http://feliratok.info/?search="$search_text""
         ;;
 
-    rarbg*) # Search on rarbg.to
+    rarbg*) # Search on rarbg
         search_text=$(sed -e s"/rarbg//;s/\s/+/g" <<< $dmenu_keywords)
 
         _open "https://rarbg.to/torrents.php?search="$search_text""
@@ -81,26 +81,19 @@ case $dmenu_keywords in
         ;;
         
 
-    ~*) # Search local files in home directory
+    ~*) # Search local files in home directory and copy selected path to clipboard
         search_result=$(sed -e s"/~//" <<< $dmenu_keywords)
+        find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12' | xsel -b
+        ;;
 
-        # If no string typed for search, just tilde (~) selected...
-        if [[ $search_result = "" ]]; then
 
-            # ... then open selected file
-            selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
-            xdg-open $selected_result
-
-        else
-            # If string typed for searhc, then search it in home directory, then copy the selected file's path into clipboard
-
-            find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12' | xsel -b
-
-        fi
+    open*) # Search local files in home directory and open selected one with default application
+        search_result=$(sed -e s"/open//" <<< $dmenu_keywords)
+        selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
+        xdg-open $selected_result
         ;;
 
     *) # if no search engine selected, then search automatically on google
-
         if [[ $dmenu_keywords != "" ]];then
 
             search_text=$(sed -e "s/\s/+/g" <<< $dmenu_keywords)
