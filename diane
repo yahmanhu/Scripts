@@ -1,10 +1,12 @@
 #!/bin/bash
 # Simple note taking script
 
+# Basic variables
 diane_file=~/diane
 date=$(date +"<%m-%d-%Y-%H:%M:%S>")
 IFS=$'\n'
 
+# Format variables
 normal=$'\e[8m'
 bold=$'\e[1m'
 italic=$'\e[3m'
@@ -13,6 +15,7 @@ inverted=$'\e[7m'
 blink=$'\e[5m'
 reset=$'\e[0m'
 
+# Color variables
 green=$'\e[32m'
 red=$'\e[31m'
 yellow=$'\e[33m'
@@ -24,21 +27,40 @@ gray=$'\e[37m'
 dark_gray=$'\e[90m'
 white=$'\e[97m'
 
+# Variables for label formatting
 label_color=$yellow
 label_format=$bold$inverted
 
+# Flag for finished tasks
 DONE="@done"
+
+# Print finished tasks by default?
 show_finished_task="true"
 
+awk_output_long(){
+
+    # Format the complete line output
+    awk '{ if ($NF ~ "'$DONE'") $0="'$italic'"$0"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; if ($NF ~ "'$DONE'" && $2 ~ "#") $3="'$italic'"$3; print $0}'
+
+}
+
+awk_output_short(){
+
+    # Format only lines associated with labels
+    awk '{ if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
+
+}
 
 not_valid(){
 
+    # Print this message when you try to access an invalid index in a loop
     echo "not a valid index"
 
 }
 
 create_diane(){
 
+    # Pretty obvious, duh
     touch $diane_file
     echo "$diane_file created"
 }
@@ -47,13 +69,16 @@ show_finished_tasks(){
 
     finished=$(grep "$DONE" $diane_file)
 
+    # If there's no finished task...
     if [[ -z $finished ]]; then
 
+        # ... send this message
         echo -e "There is no finished task yet."
 
     else
 
-         grep "$DONE" $diane_file  | awk '{$1="'$italic'"$1; $2=$2"'$reset'""'$italic'"; print $0}'
+        # If there are finished tasks, then show them
+         grep "$DONE" $diane_file | awk_output_long
 
     fi
 
@@ -61,13 +86,15 @@ show_finished_tasks(){
 
 read_diane(){
 
+    # Show every tasks including finished ones
     if [[ $show_finished_task == "true" ]]; then
 
-        awk '{ if ($NF ~ "@done") $0="'$italic'"$0"'$reset'"; if ($NF ~ "@done") $NF="'$green'"$NF"'$reset'"; if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; if ($NF ~ "@done" && $2 ~ "#") $3="'$italic'"; print $0}' $diane_file
+        awk_output_long < $diane_file
 
+    # Show only pending tasks
     elif [[ $show_finished_task == "false" ]]; then
 
-        sed "/$DONE/d" $diane_file | awk '{ if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
+        sed "/$DONE/d" $diane_file | awk_output_short
 
     fi
 
@@ -75,30 +102,36 @@ read_diane(){
 
 edit_diane(){
 
+    # Edit diane file directly
     $EDITOR $diane_file
 
 }
 
 clear_diane(){
 
+    # Remove every content directly from diane file
     sed -i "/.*/d" $diane_file
 
 }
 remove_diane(){
 
+    # Remove diane file completely
     rm $diane_file
 
 }
 
 add_new_task(){
 
+    # Add new task/note, what else?
     echo -e $date $input >> $diane_file
 
 }
 
 add_new_task_with_label(){
 
-    label=$(echo $label | awk '{gsub("'$label'","#'$label'"); print toupper($0)}')
+    # Add new task with label
+    # Label's name writed into file with a '#' before it and changed to uppercase
+    label=$(echo $label | awk '{sub("'$label'","#'$label'"); print toupper($0)}')
     echo -e $date $label $input >> $diane_file
 
 }
@@ -106,10 +139,13 @@ add_new_task_with_label(){
 
 filter_label(){
 
+    # Filter labels
     case $filter in
 
-        $filter) awk '$2 ~ /^[#]/' $diane_file | grep -i \#$filter;;
-        *) awk '$2 ~ /^[#]/' $diane_file;;
+        # If filter name provided, then print only those tasks which are associated with the given label/filter name
+        $filter) awk_output_long < $diane_file | grep -i \#$filter;;
+        # If no filter name provided, then print every labelled tasks
+        *) awk_output_long < $diane_file;;
 
     esac
 
@@ -117,17 +153,21 @@ filter_label(){
 
 make_array(){
 
+    # Create an array for loops from diane file content
     readarray content_array < $diane_file
 
     finished_tasks=()
     unfinished_tasks=()
 
+    # Read the array's content line by line
     for lines in ${content_array[@]}; do
 
+        # Unfinished tasks added to unfinished_tasks array for later processing
         if [[ $lines != *"$DONE"* ]]; then
 
             unfinished_tasks+=($lines)
 
+        # Finished tasks added to finished_tasks array for later processing
         elif [[ $lines == *"$DONE"* ]]; then
 
             finished_tasks+=($lines)
@@ -140,150 +180,209 @@ make_array(){
 
 flag_finished_task(){
 
+    # Flag those tasks which we think finished
     while true; do
 
+        # Read the array form the make_array function
         make_array
 
+        # If there's no unfinished task, then send a happy message and break the loop
         if (( "${#unfinished_tasks[@]}" == 0 )); then
             echo -e "Every task are finished."
             break 2
         fi
 
+        # If there are unfinished tasks, then print them line by line with their task index before them
         for selected_task in ${!unfinished_tasks[@]}; do
-            echo $green$bold$selected_task$reset ${unfinished_tasks[$selected_task]}
+
+            list=$(echo $selected_task ${unfinished_tasks[$selected_task]})
+            # Format the list output with awk
+            echo $list | awk '{ if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; print $0}' <<< $list
+
         done
 
+        # Wait for user to select from given list
         read task_index
 
+        # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unfinished_tasks[@]} )); then
 
+            # ... then select a valid index (task) from list
             selected_task=${unfinished_tasks[$task_index]}
 
-            echo -e $selected_task @done $reset"\n"
+            # Some fancy messages
+            echo -e flagged:
+            echo -e $selected_task @done"\n" | awk_output_long
 
+            # Do the magic. Get the selected task and "flag" it with sed, putting a $DONE string at the end of the line
             sed -i s"/$selected_task/& $DONE/" $diane_file
 
+            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unfinished_tasks[@]} )); then
 
+            # Print error message, but continue the loop
             not_valid
 
+            # If you select q or Q as a task index, you can exit from loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
 
+            # If task index not a valid number, q or Q, then print error message and continue the loop
         else
 
             not_valid
 
         fi
 
+    # Here finishes the loop
     done
 
 }
 
 unflag_finished_task(){
 
+    # Unflag previously finished/flagged tasks
     while true; do
 
+        # Read the array form the make_array function
         make_array
 
+        # If there's no finished task, then send message and break the loop
         if (( "${#finished_tasks[@]}" == 0 )); then
             echo -e "There are no finished tasks yet."
             break 2
         fi
 
+        # If there are finished tasks, then print them line by line with their task index before them
         for selected_task in ${!finished_tasks[@]}; do
-            echo $yellow$bold$selected_task$reset ${finished_tasks[$selected_task]}
+
+            list=$(echo $selected_task ${finished_tasks[$selected_task]})
+            # Format the list output with awk
+            echo $list | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#") $3="'$italic'"$3 ; print $0}'
+
         done
 
-    read task_index
+        # Wait for user to select from given list
+        read task_index
 
-    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#finished_tasks[@]} )); then
+        # If task index is a number and it's lower than the number of the elements of the list...
+        if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#finished_tasks[@]} )); then
 
-        selected_task=${finished_tasks[$task_index]}
+            # ... then select a valid index (task) from list
+            selected_task=${finished_tasks[$task_index]}
 
-        replace_task=${selected_task% $DONE}
+            # Remove the $DONE flag from the end of the line of the selected task
+            replace_task=${selected_task% $DONE}
 
-        echo -e flag removed: "$replace_task\n"
+            # Fancy messages
+            echo -e flag removed:
+            echo -e $replace_task"\n" | awk_output_short
 
-        sed -i s"/$selected_task/$replace_task/" $diane_file
+            # Do the real trick. Replace the selected task by the same one without the flag
+            sed -i s"/$selected_task/$replace_task/" $diane_file
 
-    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
+            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+        elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
 
-        not_valid
+            # Print error message, but continue the loop
+            not_valid
 
-    elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+            # If you select q or Q as a task index, you can exit from loop
+        elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
-        break
+            break
 
-    else
+            # If task index not a valid number, q or Q, then print error message and continue the loop
+        else
 
-        not_valid
+            not_valid
 
-    fi
+        fi
 
-done
+    # Here finishes the loop
+    done
 
 }
 
 remove_finished_tasks(){
 
+    # Remove all finished tasks directly from diane file
     sed -i "/$DONE/d" $diane_file
 
 }
 
 remove_task(){
 
+    # Remove selected task
     while true; do
 
+        # Create an array form the content of diane file
         readarray content_array < $diane_file
 
+        # If the array has any items...
         if [[ ${content_array[@]} > 0 ]]; then
 
+            # ... read the array line by line
             for tasks in ${!content_array[@]}; do
 
-                echo -e $bold$red$tasks$reset ${content_array[$tasks]}
+                # Format output with awk
+                echo -e $tasks ${content_array[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#" && $NF ~ "'$DONE'") $3="'$italic'"$3 ; print $0}'
 
             done
 
         else
 
+            # If array is empty then print message and break the loop
             echo "There is no task to show."
             break 2
 
         fi
 
+        # Wait for user to select from given list
         read task_index
 
+        # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
+            # ... then select a valid index (task) from list
             selected_task=${content_array[$task_index]}
 
-            echo -e removed: "$selected_task"
+            # Fancy output with awk
+            echo -e removed:
+            echo -e "$selected_task" | awk_output_long
 
             remove_task=$(echo -e $selected_task)
 
+            # Remove the selected task directly from diane file
             sed -i "/$remove_task/d" $diane_file
 
+            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
 
+            # Print error message, but continue the loop
             not_valid
 
+            # If you select q or Q as a task index, you can exit from loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
 
+            # If task index not a valid number, q or Q, then print error message and continue the loop
         else
 
             not_valid
 
         fi
+
+    # Here finishes the loop
     done
 
 }
 
 help(){
 
+# Help page (I hope it's helpful)
 cat << EOF
 
 To add tasks/notes, use 'diane' command and type your task/note without any option.
@@ -300,7 +399,7 @@ Options:
 -sf     -- show only finished/flagged (@done) tasks
 -rf     -- remove all finished/flagged (@done) tasks from file
 -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press 'Return'
--l      -- add label to note. You must write your note after the label between 'single quotes' or "double quotes"
+-l      -- add label to note. It's recommended to use simple names for labels and to avoid the use of special characters (['!'@#\$%^\&*()_+]). You must write your note after the label between 'single quotes' or "double quotes"
 -fl     -- filter labelled tasks. To show all labelled tasks just press 'Return'. To filter for specified label, type the required label's name then press 'Return'
 -h      -- show this help page
 
@@ -317,20 +416,25 @@ echo -e Diane is a mysterious woman Dale Cooper addresses all of his tapes to in
 case $1 in
 
     "")
+        # If diane file exists
         if [[ -e $diane_file ]]; then
 
+            # If diane file not empty
             if [[ -s $diane_file ]]; then
 
+                # Print the content of it
                 read_diane
 
             else
 
+                # If file empty, print message
                 echo "There is no task to show."
 
             fi
 
         else
 
+            # If diane file does not exist, then create it
             create_diane
         fi
 
@@ -346,8 +450,8 @@ case $1 in
     -rt) remove_task;;
     -l) label=$2 ; input=$3 add_new_task_with_label;;
     -fl) filter=$2 filter_label;;
-    -diane) diane;;
     -h) help;;
+    -diane) diane;;
     *) input=$@ add_new_task;;
 
 esac
