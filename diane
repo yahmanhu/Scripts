@@ -63,19 +63,11 @@ read_diane(){
 
     if [[ $show_finished_task == "true" ]]; then
 
-        #sed "/$DONE/d" $diane_file
-        #awk '$2 ~ /^[#]/' $diane_file | awk '{$2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
+        awk '{ if ($NF ~ "@done") $0="'$italic'"$0"'$reset'"; if ($NF ~ "@done") $NF="'$green'"$NF"'$reset'"; if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; if ($NF ~ "@done" && $2 ~ "#") $3="'$italic'"; print $0}' $diane_file
 
-        awk '{ if ($NF ~ "@done") $0="'$italic'"$0"'$reset'"; if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; if ($NF ~ "@done" && $2 ~ "#") $3="'$italic'"; print $0}' $diane_file
+    elif [[ $show_finished_task == "false" ]]; then
 
-
-        echo -e "\n$italic"Finished"$reset"
-        #grep "$DONE" $diane_file  | awk '{$1="'$italic'"$1; $2=$2"'$reset'""'$italic'"; print $0}'
-        #grep "$DONE" $diane_file | awk '$2 ~ /^[#]/' | awk '{$2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
-
-    #elif [[ $show_finished_task == "false" ]]; then
-
-        #sed "/$DONE/d" $diane_file
+        sed "/$DONE/d" $diane_file | awk '{ if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
 
     fi
 
