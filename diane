@@ -24,12 +24,18 @@ gray=$'\e[37m'
 dark_gray=$'\e[90m'
 white=$'\e[97m'
 
-label_color=$green
+label_color=$yellow
 label_format=$bold$inverted
 
 DONE="@done"
-message="There is no task to show."
 show_finished_task="true"
+
+
+not_valid(){
+
+    echo "not a valid index"
+
+}
 
 create_diane(){
 
@@ -47,24 +53,29 @@ show_finished_tasks(){
 
     else
 
-         grep "$DONE" $diane_file  | awk '{$1="[3m"$1; $2=$2"[0m[3m"; print $0}' 
+         grep "$DONE" $diane_file  | awk '{$1="'$italic'"$1; $2=$2"'$reset'""'$italic'"; print $0}'
 
     fi
-
 
 }
 
 read_diane(){
 
     if [[ $show_finished_task == "true" ]]; then
-        
-        sed "/$DONE/d" $diane_file
-        echo -e "\n$italic"Finished"$reset"
-        grep "$DONE" $diane_file  | awk '{$1="[3m"$1; $2=$2"[0m[3m"; print $0}' 
 
-    elif [[ $show_finished_task == "false" ]]; then
-        
-        sed "/$DONE/d" $diane_file
+        #sed "/$DONE/d" $diane_file
+        #awk '$2 ~ /^[#]/' $diane_file | awk '{$2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
+
+        awk '{ if ($NF ~ "@done") $0="'$italic'"$0"'$reset'"; if ($2 ~ "#") $2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; if ($NF ~ "@done" && $2 ~ "#") $3="'$italic'"; print $0}' $diane_file
+
+
+        echo -e "\n$italic"Finished"$reset"
+        #grep "$DONE" $diane_file  | awk '{$1="'$italic'"$1; $2=$2"'$reset'""'$italic'"; print $0}'
+        #grep "$DONE" $diane_file | awk '$2 ~ /^[#]/' | awk '{$2="'$reset'" "'$label_format'" "'$label_color'"$2 "'$reset'"; print $0}'
+
+    #elif [[ $show_finished_task == "false" ]]; then
+
+        #sed "/$DONE/d" $diane_file
 
     fi
 
@@ -95,43 +106,28 @@ add_new_task(){
 
 add_new_task_with_label(){
 
-    case $label in
-
-        note) label_format=$inverted$bold ; label_color=$white;;
-        diane) label_format=$inverted$bold ; label_color=$green;;
-        *) label_format=$label_format ; label_color=$label_color
-
-    esac
-    
-    label=$(echo $label | awk '{print toupper($0)}')
+    label=$(echo $label | awk '{gsub("'$label'","#'$label'"); print toupper($0)}')
     echo -e $date $label $input >> $diane_file
-    sed -i -e s"/$label/$label_format$label_color$label$reset/" $diane_file
 
 }
 
 
 filter_label(){
 
-        readarray content_array < $diane_file
-        labels=()
-        
-        for lines in ${content_array[@]}; do
+    case $filter in
 
-            if [[ $lines == *"["* ]]; then
+        $filter) awk '$2 ~ /^[#]/' $diane_file | grep -i \#$filter;;
+        *) awk '$2 ~ /^[#]/' $diane_file;;
 
-                labels+=($lines)
-            fi
-        done
-
-        printf '%s\n' "${labels[@]}" | grep -i $filter
+    esac
 
 }
 
-flag_finished_task(){
+make_array(){
 
-    while true; do
     readarray content_array < $diane_file
 
+    finished_tasks=()
     unfinished_tasks=()
 
     for lines in ${content_array[@]}; do
@@ -140,69 +136,7 @@ flag_finished_task(){
 
             unfinished_tasks+=($lines)
 
-        fi
-
-        done
-
-    if (( "${#unfinished_tasks[@]}" == 0 )); then
-
-        echo -e "Every task are finished."
-        break 2
-
-        fi
-
-        for selected_task in ${!unfinished_tasks[@]}; do
-            echo $green$bold$selected_task$reset ${unfinished_tasks[$selected_task]}
-        done
-
-    read task_index
-
-    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unfinished_tasks[@]} )); then
-
-        selected_task=${unfinished_tasks[$task_index]}
-
-        echo -e $selected_task @done $reset"\n"
-
-        if [[ $selected_task == *"["* ]]; then
-
-            replace_task=$(echo $selected_task | sed "s/\^/\\\^/g;s/\[/\\\[/g")
-
-        else
-
-        replace_task=$(echo -e $selected_task)
-
-    fi
-
-        sed -i s"/$replace_task/& $DONE/" "$diane_file"
-
-    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unfinished_tasks[@]} )); then
-
-        echo "not a valid index"
-
-    elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
-
-        break
-
-    else
-
-        echo "not a valid index"
-
-    fi
-
-done
-
-}
-
-unflag_finished_task(){
-
-    while true; do
-    readarray content_array < $diane_file
-
-    finished_tasks=()
-
-    for lines in ${content_array[@]}; do
-
-        if [[ $lines == *"$DONE"* ]]; then
+        elif [[ $lines == *"$DONE"* ]]; then
 
             finished_tasks+=($lines)
 
@@ -210,11 +144,60 @@ unflag_finished_task(){
 
         done
 
-    if (( "${#finished_tasks[@]}" == 0 )); then
+}
 
-        echo -e "There is no finished task yet."
-        break 2
+flag_finished_task(){
 
+    while true; do
+
+        make_array
+
+        if (( "${#unfinished_tasks[@]}" == 0 )); then
+            echo -e "Every task are finished."
+            break 2
+        fi
+
+        for selected_task in ${!unfinished_tasks[@]}; do
+            echo $green$bold$selected_task$reset ${unfinished_tasks[$selected_task]}
+        done
+
+        read task_index
+
+        if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unfinished_tasks[@]} )); then
+
+            selected_task=${unfinished_tasks[$task_index]}
+
+            echo -e $selected_task @done $reset"\n"
+
+            sed -i s"/$selected_task/& $DONE/" $diane_file
+
+        elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unfinished_tasks[@]} )); then
+
+            not_valid
+
+        elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+
+            break
+
+        else
+
+            not_valid
+
+        fi
+
+    done
+
+}
+
+unflag_finished_task(){
+
+    while true; do
+
+        make_array
+
+        if (( "${#finished_tasks[@]}" == 0 )); then
+            echo -e "There are no finished tasks yet."
+            break 2
         fi
 
         for selected_task in ${!finished_tasks[@]}; do
@@ -225,30 +208,17 @@ unflag_finished_task(){
 
     if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#finished_tasks[@]} )); then
 
-        selected=${finished_tasks[$task_index]}
+        selected_task=${finished_tasks[$task_index]}
 
-        if [[ $selected == *"["* ]]; then
+        replace_task=${selected_task% $DONE}
 
-            echo -e flag removed: "$selected"
+        echo -e flag removed: "$replace_task\n"
 
-            selected=$(echo $selected | sed "s/\^/\\\^/g;s/\[/\\\[/g")
-
-            replace_task=${selected% $DONE}
-
-        else
-
-        replace_task=${selected% $DONE}
-        echo -e flag removed: "$replace_task"
-
-        fi
-
-        sed -i s"/$selected/$replace_task/" "$diane_file"
-
-        echo -e "\n"
+        sed -i s"/$selected_task/$replace_task/" $diane_file
 
     elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
 
-        echo "not a valid index"
+        not_valid
 
     elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
@@ -256,7 +226,7 @@ unflag_finished_task(){
 
     else
 
-        echo "not a valid index"
+        not_valid
 
     fi
 
@@ -274,57 +244,49 @@ remove_task(){
 
     while true; do
 
-    readarray content_array < $diane_file
+        readarray content_array < $diane_file
 
-    if [[ ${content_array[@]} > 0 ]]; then
+        if [[ ${content_array[@]} > 0 ]]; then
 
-        for tasks in ${!content_array[@]}; do
+            for tasks in ${!content_array[@]}; do
 
-            echo -e $bold$red$tasks$reset ${content_array[$tasks]}
+                echo -e $bold$red$tasks$reset ${content_array[$tasks]}
 
-        done
-
-    else
-
-        echo $message
-        break
-
-    fi
-
-    read task_index
-
-    if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
-
-        selected_task=${content_array[$task_index]}
-
-        echo -e removed: "$selected_task"
-
-        if [[ $selected_task == *"["* ]]; then
-
-            remove_task=$(echo $selected_task | sed "s/\^/\\\^/g;s/\[/\\\[/g")
+            done
 
         else
 
-        remove_task=$(echo -e $selected_task)
+            echo "There is no task to show."
+            break 2
 
         fi
 
-        sed -i "/$remove_task/d" $diane_file
+        read task_index
 
-    elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
+        if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
 
-        echo "not a valid index"
+            selected_task=${content_array[$task_index]}
 
-    elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+            echo -e removed: "$selected_task"
 
-        break
+            remove_task=$(echo -e $selected_task)
 
-    else
+            sed -i "/$remove_task/d" $diane_file
 
-        echo "not a valid index"
+        elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
 
-    fi
-done
+            not_valid
+
+        elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+
+            break
+
+        else
+
+            not_valid
+
+        fi
+    done
 
 }
 
@@ -338,23 +300,23 @@ If 'show_finished_task' variable set true in the script, then it will print ever
 
 Options:
 
-        -clr    -- remove all content from file
-        -e      -- edit file
-        -r      -- remove file
-        -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
-        -uf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
-        -sf     -- show only finished/flagged (@done) tasks
-        -rf     -- remove all finished/flagged (@done) tasks from file 
-        -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press 'Return'
-        -l      -- add label to note. You must write your note after the label between 'single quotes' or "double quotes" 
-        -fl     -- filter labels
-        -h      -- show this help page
+-clr    -- remove all content from file
+-e      -- edit file
+-r      -- remove file
+-ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
+-uf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
+-sf     -- show only finished/flagged (@done) tasks
+-rf     -- remove all finished/flagged (@done) tasks from file
+-rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press 'Return'
+-l      -- add label to note. You must write your note after the label between 'single quotes' or "double quotes"
+-fl     -- filter labelled tasks. To show all labelled tasks just press 'Return'. To filter for specified label, type the required label's name then press 'Return'
+-h      -- show this help page
 
 EOF
 
 }
 
-whoami(){
+diane(){
 
 echo -e Diane is a mysterious woman Dale Cooper addresses all of his tapes to in the American television serial drama "$italic"Twin Peaks$reset."\n"See: http://twinpeaks.wikia.com/wiki/Diane
 
@@ -362,7 +324,7 @@ echo -e Diane is a mysterious woman Dale Cooper addresses all of his tapes to in
 
 case $1 in
 
-    "") 
+    "")
         if [[ -e $diane_file ]]; then
 
             if [[ -s $diane_file ]]; then
@@ -371,7 +333,7 @@ case $1 in
 
             else
 
-                echo $message
+                echo "There is no task to show."
 
             fi
 
@@ -379,7 +341,7 @@ case $1 in
 
             create_diane
         fi
-        
+
         ;;
 
     -clr) clear_diane;;
@@ -392,7 +354,7 @@ case $1 in
     -rt) remove_task;;
     -l) label=$2 ; input=$3 add_new_task_with_label;;
     -fl) filter=$2 filter_label;;
-    -whoami) whoami;;
+    -diane) diane;;
     -h) help;;
     *) input=$@ add_new_task;;
 
