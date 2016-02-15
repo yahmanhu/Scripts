@@ -25,7 +25,7 @@ case $dmenu_keywords in
 
     google*) # Search on Google
         search_text=$(sed -e s"/google//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
         
         _open "https://www.google.com/search?q="$search_text""
         ;;
@@ -33,14 +33,14 @@ case $dmenu_keywords in
 
     yt*) # Search on Youtube
         search_text=$(sed -e s"/yt//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "https://www.youtube.com/results?search_query="$search_text""
         ;;
 
     kat*) # Search on Kickass Torrents
         search_text=$(sed -e s"/kat//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
        
         _open "https://kat.cr/usearch/?q="$search_text""
         ;;
@@ -48,7 +48,7 @@ case $dmenu_keywords in
     imdb*) # Search on IMDb
 
         search_text=$(sed -e s"/imdb//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "http://www.imdb.com/find?ref_=nv_sr_fn&q="$search_text"&s=all"
         ;;
@@ -56,35 +56,35 @@ case $dmenu_keywords in
     duck*) # Search on DuckDuckGo
 
         search_text=$(sed -e s"/duck//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "https://duckduckgo.com/?q="$search_text""
         ;;
 
     wiki*) # Search on Wikipedia
         search_text=$(sed -e s"/wiki//;s/\s/_/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "https://en.wikipedia.org/wiki/"$search_text""
         ;;
 
     felirat*) # Search on feliratok.hu
         search_text=$(sed -e s"/felirat//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "http://feliratok.info/?search="$search_text""
         ;;
 
     rarbg*) # Search on rarbg
         search_text=$(sed -e s"/rarbg//;s/\s/+/g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "https://rarbg.to/torrents.php?search="$search_text""
         ;;
 
     aur*) # Search on Arch User Repository
         search_text=$(sed -e s"/aur//;s/\s//g" <<< $dmenu_keywords)
-        echo $search_text
+        #echo $search_text
 
         _open "https://www.archlinux.org/packages/?sort=&q="$search_text"&maintainer=&flagged="
         ;;
@@ -106,7 +106,7 @@ case $dmenu_keywords in
         if [[ $dmenu_keywords != "" ]];then
 
             search_text=$(sed -e "s/\s/+/g" <<< $dmenu_keywords)
-            echo $search_text
+            #echo $search_text
         
            _open "https://www.google.com/search?q="$search_text""
 
