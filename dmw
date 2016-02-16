@@ -22,7 +22,7 @@ esac
 selected_file=$(find -iname $file_name)
 
 if [[ ! -e $(find_mkv_srt) ]] && [[ ! -e $(find_mp4_srt) ]]; then
-    subtitle=$(echo "Download subtitle before start?" | dmenu -i -l 1 -fn 'monospace-12')
+    subtitle=$(echo -e "yes\nno" | dmenu -p "Download subtitle before start?" -i -fn 'monospace-12')
 
     case $subtitle in
         yes) dmenu -p "Downloading subtitle..." -i -l 1 -fn 'monospace-12'  & 
@@ -32,7 +32,7 @@ if [[ ! -e $(find_mkv_srt) ]] && [[ ! -e $(find_mp4_srt) ]]; then
                 pkill dmenu
             fi && periscope -l en $(find ~/downloads -iname $file_name)
 
-            if [ $? -ne 0 ]; then subtitle_error=$(echo "Can't find subtitle. Play anyway?" |  dmenu -i -l 1 -fn 'monospace-12')
+            if [ $? -ne 0 ]; then subtitle_error=$(echo -e "yes\nno"  |  dmenu -p "Can't find subtitle. Play anyway?" -i -fn 'monospace-12')
 
                 case $subtitle_error in
                     yes) play;;
