@@ -2,27 +2,52 @@
 # Select media (video) file from dmenu and play it with mpv
 # Download subtitle with periscope (https://github.com/patrickdessalle/periscope)
 
+find_mkv_files(){ find ~/downloads -iname "*.mkv";}
+find_mp4_files(){ find ~/downloads -iname "*.mp4";}
+find_srt_files(){ find ~/downloads -iname "*.srt";}
+find_mp4_srt(){ find ~/downloads -iname ${file_name%.mp4}.srt;}
+find_mkv_srt(){ find ~/downloads -iname ${file_name%.mkv}.srt;}
+play(){ mpv $selected_file; }
 
-file_name=$( (find ~/downloads -iname "*.mkv" && find ~/downloads -iname "*.mp4" && find ~/downloads -iname "*.srt") | awk -F "/" '{print $NF}' | dmenu -i -l 20 -fn 'monospace-12' )
+file_name=$( ( find_mkv_files  && find_mp4_files  && find_srt_files ) | awk -F "/" '{print $NF}' | dmenu -i -l 20 -fn 'monospace-12' )
 
-if [[ "$file_name" == *[\[\]]* ]]; then
-    file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name)
-fi
+case $file_name in
 
-if [[ $file_name == "" ]]; then
-    exit
-fi
+    "") exit;;
+    *) if [[ "$file_name" == *[\[\]]* ]]; then file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name) ; fi
+   ;;
+
+esac
 
 selected_file=$(find -iname $file_name)
 
-if [[ ! -e $(find ~/downloads -iname ${file_name%.mp4}.srt) ]] && [[ ! -e $(find ~/downloads -iname ${file_name%.mkv}.srt) ]]; then
+if [[ ! -e $(find_mkv_srt) ]] && [[ ! -e $(find_mp4_srt) ]]; then
     subtitle=$(echo "Download subtitle before start?" | dmenu -i -l 1 -fn 'monospace-12')
 
     case $subtitle in
-        yes) periscope -l en $(find ~/downloads -iname $file_name) ; mpv $selected_file;;
-        no) mpv $selected_file
+        yes) dmenu -p "Downloading subtitle..." -i -l 1 -fn 'monospace-12'  & 
+
+            if pgrep "dmenu" > /dev/null;then
+                sleep 2
+                pkill dmenu
+            fi && periscope -l en $(find ~/downloads -iname $file_name)
+
+            if [ $? -ne 0 ]; then subtitle_error=$(echo "Can't find subtitle. Play anyway?" |  dmenu -i -l 1 -fn 'monospace-12')
+
+                case $subtitle_error in
+                    yes) play;;
+                    no) exit;;
+                esac
+
+            else
+                play
+
+            fi
+             ;;
+
+        no) play ;;
     esac
 
 else
-    mpv $selected_file
+    play
 fi
