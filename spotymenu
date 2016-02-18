@@ -12,20 +12,33 @@
 #           https://github.com/spcmd
 #           https://gist.github.com/spcmd
 #
+#
 
 #==================================
 # Configurable Options
 #==================================
 
+# Dir where spotymenu stores its config and lists
+dir_spotymenu=$HOME/spotymenu
+
+# Dir that contains the cached tracklists
+dir_tracklist_cache=$dir_spotymenu/tracklist_cache
+
 # File that contains the album list
-file_albumlist=$HOME/.spoty_albums
+file_albumlist=$dir_spotymenu/album_list
 
-# Path to JSON.awk
-# You must have this if you want to use the `autoplay_album` option
-# JSON.awk was written by step- (https://github.com/step-/JSON.awk)
-file_json_awk=$HOME/scripts/JSON.awk
+# File that contains the list of playlists
+file_playlists=$dir_spotymenu/playlists
 
-# Artist and Album separator in the displayed -dmenu- list
+# Default file where the favorites saved to
+file_favorite_tracks=$dir_spotymenu/favorite_tracks
+
+# Search history
+file_search_history=$dir_spotymenu/search_history
+use_search_history="yes"
+
+# Artist and Album separator in the displayed list
+# Don't use regex chars as a separator!
 separator=" - "
 
 # Colors
@@ -35,115 +48,489 @@ normal_bg="#181818"
 normal_fg="#ccc"
 selected_bg="#1DB954"
 selected_fg="#181818"
+selected_delete_bg="#c30000"
+selected_delete_fg="#ffffff"
+
+# Show currently playing track info at the top of the list
+# you can hit ENTER on it and it will show the album's tracklist
+show_playing_track="yes"
+
+# Playing track prefix string and separator line
+playing_track_prefix=">>> Playing: "
+playing_track_separator="-"
 
 # Autoplay selected album (local album list), yes or no/empty
-# JSON.awk file needed, see: file_json_awk above!
 autoplay_album="yes"
 
-# Autoplay search result, yes or no/empty
-autoplay_search_result="yes" 
+# Use tracklist cache:
+# load tracklists from local files (cache) or always get them via spotify API (a bit slower)
+use_tracklist_cache="yes"
+
+# Tracklist: max length (width) of the 'Artist' and the 'Title' column
+# need to be lower value than the column width settings for the artist and a the title below!
+tl_elem_len=35
+
+# Tracklist column width
+tl_col_tracknr=4 # should be okay: 2 digit + dot (.) + asterisk (*) (for the currently playing song)
+tl_col_artist=40
+tl_col_title=40
+tl_col_duration=12
+tl_col_id=20
+
+# Separator line (for tracklist and the above the album list)
+sep_line_char="-"
+sep_line_width=170
 
 # For Awesome WM: switch to spotify's tag after selecting or searching
 awm_switch="no" # yes or no/empty
 awm_screen="1"
-awm_tag="3"
+awm_tag="4"
+
+# Confirm quit OR quit without warning?
+confirm_quit="yes"
+
+# API limit: results from the Spotify API (currently the max. number can be 50)
+api_limit=50
 
 #==================================
+# Dependency check
+#==================================
 
-# awesome wm switch to tag function
+if [[ ! -x /bin/jq ]]; then
+    err_msg="Error: can't find 'jq'. Make sure you have it installed! https://stedolan.github.io/jq/"
+    echo -e "$err_msg"
+    notify-send "$err_msg"
+    exit
+fi
+
+#==================================
+# Functions and variables
+#==================================
+
+# dbus calls
+dbus_stop="dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop"
+dbus_openuri="dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri"
+dbus_get_meta="dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata"
+
+# currently playing song
+playing_artist=$($dbus_get_meta | awk 'gsub("\042","")sub("string","")gsub(/^[ \t]+/,"")c&&!--c;/artist/{c=2}')
+playing_albumartist=$($dbus_get_meta | awk 'gsub("\042","")sub("string","")gsub(/^[ \t]+/,"")c&&!--c;/albumArtist/{c=2}')
+playing_title=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:title"/{f=1}')
+playing_album=$($dbus_get_meta |awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:album"/{f=1}')
+playing_tracknr=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:trackNumber"/{f=1}')
+playing_trackid=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"mpris:trackid"/{f=1}')
+playing_arturl=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"mpris:artUrl"/{f=1}')
+
+playing_length=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"mpris:length"/{f=1}')
+playing_seconds=$(($playing_length/1000000))
+playing_min_sec=$(printf ""%d:%02d"\n" $(($playing_seconds%3600/60)) $(($playing_seconds%60)))
+
+
 awm_switch_to_tag() {
     echo "local awful = require('awful') ; return awful.tag.viewonly(tags[$awm_screen][$awm_tag])" | awesome-client
 }
 
-dbus_stop() {
-    dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop
-}
-dbus_open() {
-    dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
-}
+search_album() {
+    query=$(echo "$input" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
 
-
-# dmenu styling
-DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
-
-#==================================
-
-# 1. Pipe album list to dmenu
-album=$(awk -F '|' -v sep="$separator" '{print $1 sep $2}' $file_albumlist | $DMENU)
-
-# 2.1. Check whether it was a search
-if [[ $album = /* ]];then
-
-    # search for: album
-    if [[ $album = /album* ]] || [[ $album = /b* ]]; then
-        type="album"
-        query=$(echo "$album" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g')
-        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-        dbus_call() { dbus_open; }
-    # search for: artist
-    elif [[ $album = /artist* ]] || [[ $album = /a* ]]; then
-        type="artist"
-        query=$(echo "$album" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g')
-        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-        dbus_call() { dbus_open; }
-    # search for artis and/or track
-    else
-        type="track"
-        query=$(echo "$album" | sed -e 's|/||' -e 's/ /+/g')
-        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-            if [[ $autoplay_search_result = "yes" ]]; then
-                dbus_call() { dbus_stop && dbus_open; }
-            else
-                dbus_call() { dbus_open; }
-            fi
+    # record search query to history?
+    if [[ $use_search_history = "yes" ]]; then
+        echo "$input" >> $file_search_history
     fi
 
-    spotify_uri="$(curl -s "$api_url" | grep --color=never -E -o "spotify:$type:[a-zA-Z0-9]+" -m 1)"
-    dbus_call
+    # run search
+    results_list=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&limit=$api_limit&type=album" | jq -r '.[].items | map([.name, .id] | join(" | ")) | join("\n")' | $DMENU)
+    album_id=$(echo "$results_list" | awk -F' | ' '{print $NF}')
+
+    # play selected album
+    track_uri=$(curl -s -X GET "https://api.spotify.com/v1/albums/$album_id/tracks?limit=$api_limit" | awk -F'"' '/track_number/{i++}i==1 && /uri/ {print $4;exit}')
+
+    if [[ ! -z $track_uri ]]; then
+        $dbus_stop && $dbus_openuri "string:$track_uri"
+    else
+        exit
+    fi
 
     # awesome wm - switch to spotify's tag
     if [[ $awm_switch = "yes" ]]; then
         awm_switch_to_tag
     fi
+}
 
-    ## -- DEBUG ---
+search_artist() {
+    query=$(echo "$input" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
+
+    # record search query to history?
+    if [[ $use_search_history = "yes" ]]; then
+        echo "$input" >> $file_search_history
+    fi
+
+    # run search
+    results_list="$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&limit=$api_limit&type=artist" | jq -r '.[].items | map([.name, .id] | join(" | ")) | join("\n")' | $DMENU)"
+    artist_id=$(echo "$results_list" | awk -F' | ' '{print $NF}')
+
+    # show selected artist's albums
+    if [[ ! -z $artist_id ]]; then
+        album_list=$(curl -s -X GET "https://api.spotify.com/v1/artists/$artist_id/albums?limit=$api_limit" | jq -r '.items | map([.name, .id] | join(" | ")) | join("\n")' | sort | $DMENU)
+    else
+        exit
+    fi
+    album_id=$(echo "$album_list" | awk -F' | ' '{print $NF}')
+
+    # play selected album
+    track_uri=$(curl -s -X GET "https://api.spotify.com/v1/albums/$album_id/tracks" | awk -F'"' '/track_number/{i++}i==1 && /uri/ {print $4;exit}')
+
+    if [[ ! -z $track_uri ]]; then
+        $dbus_stop && $dbus_openuri "string:$track_uri"
+    else
+        exit
+    fi
+
+    # awesome wm - switch to spotify's tag
+    if [[ $awm_switch = "yes" ]]; then
+        awm_switch_to_tag
+    fi
+}
+search_default() {
+    query=$(echo "$input" | sed -e 's|/||' -e 's/ /+/g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
+
+    # record search query to history?
+    if [[ $use_search_history = "yes" ]]; then
+        echo "$input" >> $file_search_history
+    fi
+
+    # run search
+    results_list=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=track" |  jq -r '.[].items | map([.artists[].name, .name, .album.name, .id] | join(" | ")) | join("\n")' | $DMENU)
+    track_id=$(echo "$results_list" | awk -F' | ' '{print $NF}')
+
+    if [[ ! -z $track_id ]]; then
+        $dbus_stop && $dbus_openuri "string:spotify:track:$track_id"
+    else
+        exit
+    fi
+
+    # awesome wm - switch to spotify's tag
+    if [[ $awm_switch = "yes" ]]; then
+        awm_switch_to_tag
+    fi
+}
+
+#==================================
+# Do the stuff
+#==================================
+
+# 0. dmenu styling
+DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
+DMENU_DELETE="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_delete_bg -sf $selected_delete_fg"
+
+# 1. Pipe album list to dmenu
+
+if [[ ! -f $file_albumlist ]]; then
+    echo "Error: can't find $file_albumlist" | $DMENU
+else
+    if [[ $show_playing_track = "yes" ]]; then
+        input=$(awk -F '|' \
+            -v sep="$separator" \
+            -v artist="$playing_artist" \
+            -v title="$playing_title" \
+            -v album="$playing_album" \
+            -v sep_line="$( printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
+            -v pfx="$playing_track_prefix" \
+            'BEGIN {print pfx artist sep title" ("album")\n"sep_line}{print $1 sep $2}' $file_albumlist \
+            | $DMENU)
+    else
+        input=$(awk -F '|' \
+            -v sep="$separator" \
+            '{print $1 sep $2}' $file_albumlist \
+            | $DMENU)
+    fi
+fi
+
+# --- Search ---
+# search for: album
+if [[ $input = /album* ]] || [[ $input = /b* ]]; then
+        search_album
+    # search for: artist
+elif [[ $input = /artist* ]] || [[ $input = /a* ]]; then
+        search_artist
+    # search for artist and/or track
+elif [[ $input = /* ]]; then
+        search_default
+
+    # -- DEBUG ---
     #echo -e "This was a search for: \033[0;33m$query\033[0m"
     #echo -e "type: \033[0;33m$type\033[0m"
     #echo -e "spotify_uri: \033[0;33m$spotify_uri\033[0m"
 
-# 2.2. If it wasn't a search then load the album
+# --- Show the search history ---
+elif [[ $input = ":?" ]]; then
+
+    if [[ $use_search_history = "yes" ]]; then
+
+        if [[ ! -f $file_search_history ]]; then
+            echo "Error: can't find $file_search_history" | $DMENU
+        else
+            search_string=$(tac $file_search_history | uniq | $DMENU)
+            if [[ $search_string = /b* ]] || [[ $search_string = /album* ]]; then
+                input="$search_string" && search_album
+            elif [[ $search_string = /a* ]] || [[ $search_string = /artist* ]]; then
+                input="$search_string" && search_artist
+            elif [[ $search_string = /* ]]; then
+                input="$search_string" && search_default
+            else
+                exit
+            fi
+        fi
+
+    else
+        exit
+    fi
+
+# --- Switch to the playlists ---
+elif [[ $input = :playlist ]] || [[ $input = :p ]]; then
+
+    if [[ ! -f $file_playlists ]]; then
+        echo "Error: can't find $file_playlists" | $DMENU
+    else
+        playlist=$(awk -F '|' '{print $1}' $file_playlists | $DMENU)
+        playlist_uri=$(awk -F '|' 'index($0, "'"$playlist"'"){print $NF}' $file_playlists | head -n 1)
+
+        if [[ -z $playlist ]]; then
+            exit
+        else
+            $dbus_openuri "string:$playlist_uri"
+            if [[ $awm_switch = "yes" ]]; then
+                awm_switch_to_tag
+            fi
+        fi
+    fi
+
+# --- Quit/Close Spotify ---
+elif [[ $input = :quit ]] || [[ $input = :q ]]; then
+    if [[ $confirm_quit = "yes" ]]; then
+        quit_answer=$(echo -e "Are you sure you want to close Spotify?\nyes\nno" | $DMENU)
+        [[ $quit_answer = "yes" ]] && pkill -SIGTERM spotify || exit
+    else
+        pkill -SIGTERM spotify
+    fi
+
+# --- Detailed Info about the played album/song ---
+elif [[ $input = :info ]] || [[ $input = :i ]]; then
+    infolist=$(echo -e "\
+     Information:  (press Enter to copy the entry to the clipboard)\n\
+     ==============================================================\n\
+     Artist: $playing_artist\n\
+      Title: $playing_title\n\
+      Album: $playing_album\n\
+      Track: $playing_tracknr\n\
+     Length: $playing_min_sec\n\
+         ID: $playing_trackid\n\
+      Cover: $playing_arturl\n\
+     ==============================================================\
+     " | $DMENU)
+
+    echo "$infolist" | awk '{$1="";gsub(/^[ \t]+/, "");print $0}' | xsel -b
+
+# --- Add current album to the album list ---
+elif [[ $input = :add ]] || [[ $input = :a ]]; then
+    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
+
+    playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
+
+    if [[ ! -z $playing_albumid ]]; then
+        add_answer=$(echo -e "Add '$playing_artist - $playing_album' to the albumlist?\nyes\nno" | $DMENU)
+        [[ $add_answer = "yes" ]] && echo "$playing_albumartist|$playing_album|$playing_albumid" >> $file_albumlist\
+           && echo -e "Done:\n'$playing_album' added to the album list\n" | $DMENU \
+           || exit
+    else
+        exit
+    fi
+
+# --- Album show tracklist ---
+elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
+
+    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
+    playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
+
+        # DEBUG
+        #echo "playing_artist: $playing_artist"
+        #echo "playing_albumartist: $playing_albumartist"
+        #echo "playing_album: $playing_album"
+        #echo "query: $query"
+        #echo "playing_albumid: $playing_albumid"
+
+    if [[ ! -z $playing_albumid ]]; then
+
+        # if we have tracklist cached, read tracklist from the file
+        if [[ -f $dir_tracklist_cache/$playing_albumid ]] && [[ $use_tracklist_cache = "yes" ]]; then
+            get_list=$(cat "$dir_tracklist_cache/$playing_albumid")
+
+        # if we don't have it cached, get it via API
+        else
+            # if tracklist cache enable, write the tracklist to a file
+            if [[ $use_tracklist_cache = "yes" ]]; then
+                get_list=$(\
+                    curl -s -X GET "https://api.spotify.com/v1/albums/$playing_albumid/tracks?limit=$api_limit" \
+                    | jq -r '.items | map([.track_number, .artists[].name, .name, .duration_ms, .id | tostring] | join("|")) | join("\n")' \
+                    | tee $dir_tracklist_cache/$playing_albumid \
+                    )
+            # else just get the tracklist and don't write it to a file
+            else
+                get_list=$(\
+                curl -s -X GET "https://api.spotify.com/v1/albums/$playing_albumid/tracks?limit=$api_limit" \
+                | jq -r '.items | map([.track_number, .artists[].name, .name, .duration_ms, .id | tostring] | join("|")) | join("\n")' \
+                )
+
+            fi
+        fi
+
+        # format the tracklist and show it
+        tracklist=$(echo "$get_list" \
+            | awk \
+            -v pfx="$playing_track_prefix" \
+            -v ptf="$playing_tracknr. $playing_artist - $playing_title ($playing_album)" \
+            -v sep_line="$( printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
+            -v len=$tl_elem_len \
+            -v c_nr=$tl_col_tracknr \
+            -v c_a=$tl_col_artist \
+            -v c_t=$tl_col_title \
+            -v c_i=$tl_col_id \
+            'BEGIN{ \
+                printf "%-1s%-"c_nr"s %-"c_a"s %-"c_t"s %-"c_d"s  %-"c_i"s%-1s\n", \
+                pfx ptf"\n"sep_line"\n",\
+                "Nr.","Artist","Title","Time","ID","\n"sep_line \
+            } \
+            { \
+                $(NF-1)=$(NF-1)/1000; \
+                if (NF>5) $2=$2" "$3; \
+                if(length($2)>len) $2=substr($2,1,len)"..."; \
+                if(length($(NF-2))>len) $(NF-2)=substr($(NF-2),1,len)"..."; \
+                if ($1 == '"$playing_tracknr"') $1=$1".*"; else $1=$1"."; \
+                printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
+            }' FS=\| \
+                | $DMENU)
+
+        # get the track id & play the track
+        track_id=$(echo "$tracklist" | awk '{print $NF}')
+        if [[ ! -z $track_id ]]; then
+            $dbus_stop && $dbus_openuri "string:spotify:track:$track_id"
+        else
+            exit
+        fi
+
+    else
+        exit
+    fi
+
+# --- Delete album from the album list ---
+elif [[ $input = :del* ]] || [[ $input = :d ]]; then
+
+    if [[ ! -f $file_albumlist ]]; then
+        echo "Error: can't find $file_albumlist" | $DMENU
+    else
+        input=$(awk -F '|' -v sep="$separator" '{print $1 sep $2}' $file_albumlist | $DMENU_DELETE)
+        get_album=$(echo "$input" | awk -v sep="$separator" '{sub(sep,"|");print}')
+        album_id=$(awk -F '|' 'index($0, "'"$get_album"'"){print $NF}' $file_albumlist | head -n 1)
+
+        if [[ ! -z $input ]]; then
+            delete_answer=$(echo -e "Delete '$input' from the albumlist?\nyes\nno" | $DMENU_DELETE)
+            [[ $delete_answer = "yes" ]] && sed -i "/$album_id/d" $file_albumlist\
+            && echo -e "Done:\n'$input' deleted from the album list\n" | $DMENU_DELETE \
+            || exit
+        else
+            exit
+        fi
+    fi
+
+# --- Favorite tracks: ADD ---
+elif [[ $input = :fadd ]] || [[ $input = :fa ]]; then
+
+    echo "$playing_artist|$playing_title|$playing_album|$playing_min_sec|$playing_trackid" >> $file_favorite_tracks &&\
+    echo -e "Done:\n'$playing_artist - $playing_title' added to the favorites.\n" | $DMENU
+
+# --- Favorite tracks: DELETE ---
+elif [[ $input = :fd* ]]; then
+
+    get_track=$(awk -v len=30 'BEGIN{printf "%-30s%-35s%-35s%-6s%-38s%-100s\n","Artist","Title","Album","Time","URI","\n----------------------------------------------------------------------------------------------------------------------------------------------"}{if(length($1)>len) $1=substr($1,1,30)"..."; if(length($2)>len) $2=substr($2,1,30)"..."; if(length($3)>len) $3=substr($3,1,30)"..."; printf "%-30s%-35s%-35s%-6s%-38s\n",$1,$2,$3,$4,$5}' FS=\| $file_favorite_tracks | $DMENU_DELETE)
+    track_uri=$(echo "$get_track" | awk '{print $NF}')
+    track_artist_title=$(awk -F'|' '/'"$track_uri"'/{print $1" - "$2}' $file_favorite_tracks)
+
+    if [[ ! -z $get_track ]]; then
+        delete_answer=$(echo -e "Delete '$track_artist_title' from the favorites?\nyes\nno" | $DMENU_DELETE)
+        [[ $delete_answer = "yes" ]] && sed -i "/$track_uri/d" $file_favorite_tracks\
+        && echo -e "Done:\n'$track_artist_title' deleted from the favorites\n" | $DMENU_DELETE \
+        || exit
+    else
+        exit
+    fi
+
+# --- Favorite tracks: LIST ---
+elif [[ $input = :fav* ]] || [[ $input = :f ]]; then
+
+    get_track=$(awk -v len=30 'BEGIN{printf "%-30s%-35s%-35s%-6s%-38s%-100s\n","Artist","Title","Album","Time","URI","\n----------------------------------------------------------------------------------------------------------------------------------------------"}{if(length($1)>len) $1=substr($1,1,30)"..."; if(length($2)>len) $2=substr($2,1,30)"..."; if(length($3)>len) $3=substr($3,1,30)"..."; printf "%-30s%-35s%-35s%-6s%-38s\n",$1,$2,$3,$4,$5}' FS=\| $file_favorite_tracks | $DMENU)
+    track_uri=$(echo "$get_track" | awk '{print $NF}')
+
+    if [[ ! -z $get_track ]]; then
+        $dbus_stop && $dbus_openuri "string:$track_uri"
+    else
+        exit
+    fi
+
+# --- Help ---
+elif [[ $input = :help ]] || [[ $input = :h ]]; then
+     echo -e "\
+         Help\n\
+         ======================================================================\n\
+         /                 Search track (with or without artist)\n\
+         /a   /artist      Search artist\n\
+         /b   /album       Search album\n\
+         :?                Show search history\n\
+         :p   :playlist    Switch to the exported playlists\n\
+         :a   :add         Add current album to the album list\n\
+         :d   :delete      Delete album from the album list\n\
+         :t   :tracklist   Show tracklist of the current album\n\
+         :f   :fav         Show favorite tracks' list\n\
+         :fa  :fadd        Add track to the favorites list\n\
+         :fd  :fdel        Delete track from the favorites list\n\
+         :i   :info        Show detailed information about the played track/album\n\
+         :q   :quit        Quit (close Spotify)\n\
+         :h   :help        This help\n\
+         ======================================================================\
+         " | $DMENU
+
+# --- Load the album list ---
 else
 
     # Transform the custom separator format to the default pipe delimeted format (like in the file_albumlist)
-    get_album=$(echo "$album" | awk -v sep="$separator" '{sub(sep,"|");print}')
+    get_album=$(echo "$input" | awk -v sep="$separator"  'BEGIN{FS=sep; OFS=sep} {$1="";sub(sep,"");gsub(/^[ \t]+/, ""); print}')
 
     # Get the Album ID
     # Use string match (index) instead of regex because the album names can contain special regex characters.
     # Also the list uses pipes as delimeters (and the pipe is a special char in regex).
-    album_id=$(awk -F '|' 'index($0, "'"$get_album"'"){print $NF}' $file_albumlist | head -n 1)
+    album_id=$(awk -F '|' '$(NF-1)=="'"$get_album"'" {print $NF}' $file_albumlist)
 
-    # 2.2.1. If no album selected, exit
+
+    # If no album selected, exit
     if [[ -z $get_album ]]; then
         exit
     else
-        # 2.2.1.1 open the album in spotify
+        # open the album in spotify
         if [[ $autoplay_album = "yes" ]]; then
-            track_id=$(curl --silent -X GET "https://api.spotify.com/v1/albums/$album_id/tracks" > /tmp/spotymenu.json && echo "/tmp/spotymenu.json" | awk -f "$file_json_awk" | awk -F']' '/^\["items",0,"id"]/{gsub(/^[ \t]+/, "", $2);gsub(/"/,"", $2);print $2}')
-            dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop &&\
-            dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:track:$track_id"
-        # 2.2.1.2. else switch to album and don't autoplay
+            track_uri=$(curl -s -X GET "https://api.spotify.com/v1/albums/$album_id/tracks" | awk -F'"' '/track_number/{i++}i==1 && /uri/ {print $4;exit}')
+            $dbus_stop && $dbus_openuri "string:$track_uri"
+        # else switch to album and don't autoplay
         else
-            dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:album:$album_id"
+            $dbus_openuri "string:spotify:album:$album_id"
             # awesome wm - switch to spotify's tag
             if [[ $awm_switch = "yes" ]]; then
                 awm_switch_to_tag
             fi
         fi
-        
+
         # -- DEBUG ---
-        #echo -e "album: \033[0;33m$album\033[0m"
+        #echo -e "input/album: \033[0;33m$input\033[0m"
         #echo -e "get_album: \033[0;33m$get_album\033[0m"
         #echo -e "album_id: \033[0;33m$album_id\033[0m"
-        #echo -e "track_id: \033[0;33m$track_id\033[0m"
+        #echo -e "track_uri: \033[0;33m$track_uri\033[0m"
     fi
 fi
