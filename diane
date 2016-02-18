@@ -27,7 +27,6 @@ dark_gray=$'\e[90m'
 white=$'\e[97m'
 
 # Default label format
-# You can specify other formats for predefined labels in show_predefined_labels function below
 label_color=$yellow
 label_format=$bold$inverted
 
@@ -37,32 +36,42 @@ DONE="@done"
 # Print finished tasks by default?
 show_finished_task="true"
 
+# Show predefined labels by default?
+# You can specify predefined labels in show_predefined_labels function below
+show_predefined_labels="true"
+
 show_predefined_labels(){
 
     # Predefined label formats
     # Note that every format must start AND end with the $reset variable
-    # Note that you must write the name of label you want to subsitute with uppercase characters with a '#' symbol at the beginning
+    # Note that you must write the name of the label you want to subsitute with uppercase characters with a '#' symbol at the beginning
     # You can use every color and format variables from the list above to define the desired appearance for your labels
     # You can also use this function to abbreviate frequently used label names, so you don't have to write the whole name of the label when you add a new task, but you can still have it even with nicer output
-    # If you don't want to use any predefined labels, you just simply comment the lines start with "gsub" in the awk command below, but you must leave the first and last lines in order to maintain the proper functionality of the script
+    # If you don't want to use predefined labels, you just simply change the show_predefined_labels variable from 'true' to 'false
 
-    example=$reset$italic$red\EXAMPLE$reset
-    spotymenu=$reset$green$bold\SPOTYMENU$reset
-    note=$reset$white$bold$inverted\Note$reset
-    awesome=$reset$blue$bold\AWESOME$reset
-    diane=$reset$bold$green\Diane$reset
-    dmw=$rest$bold$inverted$magenta\dmw$reset
-    dms=$rest$bold$inverted$cyan\dms$reset
+    if [[ $show_predefined_labels == "true" ]]; then
 
-    awk '{ \
-    gsub("#EXAMPLE","'$example'");\
-    gsub("#SPOTY","'$spotymenu'"); \
-    gsub("#NOTE","'$note'");\
-    gsub("#AWESOME","'$awesome'");\
-    gsub("#DIANE","'$diane'");\
-    gsub("#DMW","'$dmw'");\
-    gsub("#DMS","'$dms'");\
-    print $0}' 
+        example=$reset$italic$red\EXAMPLE$reset
+        spotymenu=$reset$green$bold\SPOTYMENU$reset
+        note=$reset$white$bold$inverted\Note$reset
+        awesome=$reset$blue$bold\AWESOME$reset
+        diane=$reset$bold$green\Diane$reset
+        dmw=$rest$bold$inverted$magenta\dmw$reset
+        dms=$rest$bold$inverted$cyan\dms$reset
+
+        awk '{ \
+        gsub("#EXAMPLE","'$example'");\
+        gsub("#SPOTY","'$spotymenu'"); \
+        gsub("#NOTE","'$note'");\
+        gsub("#AWESOME","'$awesome'");\
+        gsub("#DIANE","'$diane'");\
+        gsub("#DMW","'$dmw'");\
+        gsub("#DMS","'$dms'");\
+        print $0}'
+
+    elif [[ $show_predefined_labels == "false" ]]; then
+        awk '{print $0}'
+    fi
 
 }
 
@@ -119,7 +128,7 @@ read_diane(){
     if [[ $show_finished_task == "true" ]]; then
 
         awk_output_long < $diane_file | show_predefined_labels
-        
+
 
     # Show only pending tasks
     elif [[ $show_finished_task == "false" ]]; then
