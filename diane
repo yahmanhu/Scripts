@@ -20,7 +20,6 @@ green=$'\e[32m'
 red=$'\e[31m'
 yellow=$'\e[33m'
 blue=$'\e[34m'
-red=$'\e[31m'
 cyan=$'\e[36m'
 magenta=$'\e[35m'
 gray=$'\e[37m'
@@ -28,7 +27,7 @@ dark_gray=$'\e[90m'
 white=$'\e[97m'
 
 # Default label format
-# You can specify other formats for predefined labels in predefined_labels function below
+# You can specify other formats for predefined labels in show_predefined_labels function below
 label_color=$yellow
 label_format=$bold$inverted
 
@@ -38,24 +37,31 @@ DONE="@done"
 # Print finished tasks by default?
 show_finished_task="true"
 
-predefined_labels(){
+show_predefined_labels(){
 
     # Predefined label formats
     # Note that every format must start AND end with the $reset variable
-    # You can use every variables from color and format variables from the list above to define your desired appearance for your labels
-    # You can use this function to abbreviate frequently used label names, so you don't have to write the whole name of the label when you add a new task, but you can still have it even with nicer output
-    # If you don't want to use any predefined labels, you just simply comment the lines start with "gsub" in the awk command below, but you must leave the first and last lines in order to proper functionality of the script
+    # Note that you must write the name of label you want to subsitute with uppercase characters with a '#' symbol at the beginning
+    # You can use every color and format variables from the list above to define the desired appearance for your labels
+    # You can also use this function to abbreviate frequently used label names, so you don't have to write the whole name of the label when you add a new task, but you can still have it even with nicer output
+    # If you don't want to use any predefined labels, you just simply comment the lines start with "gsub" in the awk command below, but you must leave the first and last lines in order to maintain the proper functionality of the script
 
-    example=$reset$italic$red\#EXAMPLE$reset
-    spotymenu=$reset$green$bold\#SPOTYMENU$reset
-    note=$reset$white$bold$inverted\#NOTE$reset
-    awesome=$reset$blue$bold\#AWESOME$reset
+    example=$reset$italic$red\EXAMPLE$reset
+    spotymenu=$reset$green$bold\SPOTYMENU$reset
+    note=$reset$white$bold$inverted\Note$reset
+    awesome=$reset$blue$bold\AWESOME$reset
+    diane=$reset$bold$green\Diane$reset
+    dmw=$rest$bold$inverted$magenta\dmw$reset
+    dms=$rest$bold$inverted$cyan\dms$reset
 
     awk '{ \
-    gsub("#SPOTYMENU","'$spotymenu'"); \
-    gsub("#NOTE","'$note'");\
     gsub("#EXAMPLE","'$example'");\
-    gsub("#AWE","'$awesome'");\
+    gsub("#SPOTY","'$spotymenu'"); \
+    gsub("#NOTE","'$note'");\
+    gsub("#AWESOME","'$awesome'");\
+    gsub("#DIANE","'$diane'");\
+    gsub("#DMW","'$dmw'");\
+    gsub("#DMS","'$dms'");\
     print $0}' 
 
 }
@@ -101,7 +107,7 @@ show_finished_tasks(){
     else
 
         # If there are finished tasks, then show them
-         grep "$DONE" $diane_file | awk_output_long | predefined_labels
+         grep "$DONE" $diane_file | awk_output_long | show_predefined_labels
 
     fi
 
@@ -112,13 +118,13 @@ read_diane(){
     # Show every tasks including finished ones
     if [[ $show_finished_task == "true" ]]; then
 
-        awk_output_long < $diane_file | predefined_labels
+        awk_output_long < $diane_file | show_predefined_labels
         
 
     # Show only pending tasks
     elif [[ $show_finished_task == "false" ]]; then
 
-        sed "/$DONE/d" $diane_file | awk_output_short | predefined_labels
+        sed "/$DONE/d" $diane_file | awk_output_short | show_predefined_labels
 
     fi
 
@@ -147,7 +153,10 @@ remove_diane(){
 add_new_task(){
 
     # Add new task/note, what else?
-    echo -e $date $input >> $diane_file
+    #echo -e $date $input >> $diane_file
+
+    # Changed it to add simple notes with NOTE label by default
+    echo -e $date \#NOTE $input >> $diane_file
 
 }
 
@@ -167,7 +176,7 @@ filter_label(){
     case $filter in
 
         # If filter name provided, then print only those tasks which are associated with the given label/filter name
-        $filter) awk_output_long < $diane_file | predefined_labels | grep -i \#$filter;;
+        $filter) awk_output_long < $diane_file  | grep -i \#$filter | show_predefined_labels;;
         # If no filter name provided, then print every labelled tasks
         *) awk_output_long $diane_file;;
 
@@ -221,7 +230,7 @@ flag_finished_task(){
 
             list=$(echo $selected_task ${unfinished_tasks[$selected_task]})
             # Format the list output with awk
-            echo $list | awk '{ if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; print $0}' <<< $list | predefined_labels
+            echo $list | awk '{ if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; print $0}' <<< $list | show_predefined_labels
 
         done
 
@@ -236,7 +245,7 @@ flag_finished_task(){
 
             # Some fancy messages
             echo -e flagged:
-            echo -e $selected_task @done"\n" | awk_output_long | predefined_labels
+            echo -e $selected_task @done"\n" | awk_output_long | show_predefined_labels
 
             # Do the magic. Get the selected task and "flag" it with sed, putting a $DONE string at the end of the line
             sed -i s"/$selected_task/& $DONE/" $diane_file
@@ -283,7 +292,7 @@ unflag_finished_task(){
 
             list=$(echo $selected_task ${finished_tasks[$selected_task]})
             # Format the list output with awk
-            echo $list | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#") $3="'$italic'"$3 ; print $0}' | predefined_labels
+            echo $list | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#") $3="'$italic'"$3 ; print $0}' | show_predefined_labels
 
         done
 
@@ -301,7 +310,7 @@ unflag_finished_task(){
 
             # Fancy messages
             echo -e flag removed:
-            echo -e $replace_task"\n" | awk_output_short | predefined_labels
+            echo -e $replace_task"\n" | awk_output_short | show_predefined_labels
 
             # Do the real trick. Replace the selected task by the same one without the flag
             sed -i s"/$selected_task/$replace_task/" $diane_file
@@ -351,7 +360,7 @@ remove_task(){
             for tasks in ${!content_array[@]}; do
 
                 # Format output with awk
-                echo -e $tasks ${content_array[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#" && $NF ~ "'$DONE'") $3="'$italic'"$3 ; print $0}' | predefined_labels
+                echo -e $tasks ${content_array[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#" && $NF ~ "'$DONE'") $3="'$italic'"$3 ; print $0}' | show_predefined_labels
 
             done
 
@@ -374,7 +383,7 @@ remove_task(){
 
             # Fancy output with awk
             echo -e removed:
-            echo -e "$selected_task" | awk_output_long | predefined_labels
+            echo -e "$selected_task" | awk_output_long | show_predefined_labels
 
             remove_task=$(echo -e $selected_task)
 
