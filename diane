@@ -42,9 +42,9 @@ predefined_labels(){
 
     # Predefined label formats
     # Note that every format must start AND end with the $reset variable
-    # You can use every variables from color and format variables above to define your desired appearance for your labels
+    # You can use every variables from color and format variables from the list above to define your desired appearance for your labels
     # You can use this function to abbreviate frequently used label names, so you don't have to write the whole name of the label when you add a new task, but you can still have it even with nicer output
-    # If you don't want to use any predefined labels, you just simply comment the lines start with "gsub" in the awk command below, but you must leave the first and last lines in order to proper functionality
+    # If you don't want to use any predefined labels, you just simply comment the lines start with "gsub" in the awk command below, but you must leave the first and last lines in order to proper functionality of the script
 
     example=$reset$italic$red\#EXAMPLE$reset
     spotymenu=$reset$green$bold\#SPOTYMENU$reset
