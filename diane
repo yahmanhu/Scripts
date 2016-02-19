@@ -89,10 +89,51 @@ awk_output_short(){
 
 }
 
+make_array(){
+
+    # Create an array for loops from diane file content
+    readarray content_array < $diane_file
+
+    finished_tasks=()
+    unfinished_tasks=()
+
+    unlabelled_tasks=()
+    labelled_tasks=()
+
+    # Read the array's content line by line
+    for lines in ${content_array[@]}; do
+
+        # Unfinished tasks added to unfinished_tasks array for later processing
+        if [[ $lines != *"$DONE"* ]]; then
+
+            unfinished_tasks+=($lines)
+
+        # Finished tasks added to finished_tasks array for later processing
+        elif [[ $lines == *"$DONE"* ]]; then
+
+            finished_tasks+=($lines)
+
+        fi
+
+        # Unlabelled tasks added to unlabelled_tasks array for later processing
+        if [[ ! $lines =~ \#[A-Z0-9] ]]; then
+
+            unlabelled_tasks+=($lines)
+
+        # Labelled tasks added to labelled_tasks array for later processing
+        elif [[ $lines =~ \#[A-Z0-9] ]]; then
+
+            labelled_tasks+=($lines)
+        fi
+
+        done
+
+}
+
 not_valid(){
 
     # Print this message when you try to access an invalid index in a loop
-    echo "not a valid index"
+    echo -e "\nnot a valid index\n"
 
 }
 
@@ -164,9 +205,6 @@ add_new_task(){
     # Add new task/note, what else?
     echo -e $date $input >> $diane_file
 
-    # Changed it to add simple notes with NOTE label by default
-    #echo -e $date \#NOTE $input >> $diane_file
-
 }
 
 add_new_task_with_label(){
@@ -196,41 +234,25 @@ add_label(){
 
     while true; do
 
-        # Read file content into an array
-        readarray content_array < $diane_file
-        unlabelled_tasks=()
+        make_array
 
-        # Read array line by line
-        for lines in ${content_array[@]}; do
+        # If array is empty then print message and break the loop
+        if [[ ${#unlabelled_tasks[@]} == 0 ]]; then
 
-            # If line (task) does not have a label, then add it to list
-            if [[ ! $lines =~ \#[A-Z] ]]; then
-
-                unlabelled_tasks+=($lines)
-            fi
-        done
-
-        # If list (array) not empty...
-        if [[ ${unlabelled_tasks[@]} > 0 ]]; then
-
-            # ... read the array line by line
-            for tasks in ${!unlabelled_tasks[@]}; do
-
-                # Format output with awk
-                echo -e $tasks ${unlabelled_tasks[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'""'$italic'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'" ; print $0}'
-
-            done
-
-        else
-
-            # If array is empty then print message and break the loop
             echo "There isn't any unlabelled task to show."
             break 2
-
         fi
 
+        # Read the array line by line
+        for tasks in ${!unlabelled_tasks[@]}; do
+
+            # Format output with awk
+            echo -e $tasks ${unlabelled_tasks[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'""'$italic'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'" ; print $0}'
+
+        done
+
         # Wait for user to select from given list
-        read task_index
+        read -p $'Select: ' task_index
 
         # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unlabelled_tasks[@]} )); then
@@ -249,19 +271,17 @@ add_label(){
             echo -e "\nLabelled:\n$labelled_task\n" | awk_output_long | show_predefined_labels
 
             sed -i "s/$selected_task/$labelled_task/g" $diane_file
-
-            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+            
+        # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unlabelled_tasks[@]} )); then
 
-            # Print error message, but continue the loop
-            not_valid
+           not_valid
 
-            # If you select q or Q as a task index, you can exit from loop
+        # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
-
-            # If task index not a valid number, q or Q, then print error message and continue the loop
+        
         else
 
             not_valid
@@ -277,41 +297,25 @@ remove_label(){
 
     while true; do
 
-        # Read file content into an array
-        readarray content_array < $diane_file
-        labelled_tasks=()
+        make_array
 
-        # Read array line by line
-        for lines in ${content_array[@]}; do
-
-            # If line (task) does not have a label, then add it to list
-            if [[ $lines =~ \#[A-Z] ]]; then
-
-                labelled_tasks+=($lines)
-            fi
-        done
-
-        # If list (array) not empty...
-        if [[ ${labelled_tasks[@]} > 0 ]]; then
-
-            # ... read the array line by line
-            for tasks in ${!labelled_tasks[@]}; do
-
-                # Format output with awk
-                echo -e $tasks ${labelled_tasks[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#") $3="'$italic'"$3 ; print $0}' | show_predefined_labels
-               
-            done
-
-        else
-
-            # If array is empty then print message and break the loop
+        # If array is empty then print message and break the loop
+        if [[ ${#labelled_tasks[@]} == 0 ]]; then
             echo "There isn't any unlabelled task to show."
             break 2
 
         fi
 
+        # Read the array line by line
+        for tasks in ${!labelled_tasks[@]}; do
+
+            # Format output with awk
+            echo -e $tasks ${labelled_tasks[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#") $3="'$italic'"$3 ; print $0}' | show_predefined_labels
+
+        done
+
         # Wait for user to select from given list
-        read task_index
+        read -p $'Select: ' task_index
 
         # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#labelled_tasks[@]} )); then
@@ -326,19 +330,16 @@ remove_label(){
             echo -e "\nLabel removed:\n$unlabelled_task\n" | awk_output_long | show_predefined_labels
 
             sed -i "s/$selected_task/$unlabelled_task/g" $diane_file
-
-            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+            
+        # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#labelled_tasks[@]} )); then
 
-            # Print error message, but continue the loop
-            not_valid
-
-            # If you select q or Q as a task index, you can exit from loop
+           not_valid
+           
+        # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
-
-            # If task index not a valid number, q or Q, then print error message and continue the loop
         else
 
             not_valid
@@ -350,32 +351,6 @@ remove_label(){
 
 }
 
-make_array(){
-
-    # Create an array for loops from diane file content
-    readarray content_array < $diane_file
-
-    finished_tasks=()
-    unfinished_tasks=()
-
-    # Read the array's content line by line
-    for lines in ${content_array[@]}; do
-
-        # Unfinished tasks added to unfinished_tasks array for later processing
-        if [[ $lines != *"$DONE"* ]]; then
-
-            unfinished_tasks+=($lines)
-
-        # Finished tasks added to finished_tasks array for later processing
-        elif [[ $lines == *"$DONE"* ]]; then
-
-            finished_tasks+=($lines)
-
-        fi
-
-        done
-
-}
 
 flag_finished_task(){
 
@@ -401,7 +376,7 @@ flag_finished_task(){
         done
 
         # Wait for user to select from given list
-        read task_index
+        read -p $'Select: ' task_index
 
         # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unfinished_tasks[@]} )); then
@@ -414,31 +389,28 @@ flag_finished_task(){
 
             # Do the magic. Get the selected task and "flag" it with sed, putting a $DONE string at the end of the line
             sed -i s"/$selected_task/& $DONE/" $diane_file
-
-            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+            
+        # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unfinished_tasks[@]} )); then
 
-            # Print error message, but continue the loop
             not_valid
-
-            # If you select q or Q as a task index, you can exit from loop
+            
+        # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
-
-            # If task index not a valid number, q or Q, then print error message and continue the loop
+        
         else
 
             not_valid
 
         fi
-
     # Here finishes the loop
     done
 
 }
 
-unflag_finished_task(){
+remove_flag(){
 
     # Unflag previously finished/flagged tasks
     while true; do
@@ -462,7 +434,7 @@ unflag_finished_task(){
         done
 
         # Wait for user to select from given list
-        read task_index
+        read -p $'Select: ' task_index
 
         # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#finished_tasks[@]} )); then
@@ -478,19 +450,17 @@ unflag_finished_task(){
 
             # Do the real trick. Replace the selected task by the same one without the flag
             sed -i s"/$selected_task/$replace_task/" $diane_file
-
-            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+            
+        # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
 
-            # Print error message, but continue the loop
             not_valid
 
-            # If you select q or Q as a task index, you can exit from loop
+        # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
 
-            # If task index not a valid number, q or Q, then print error message and continue the loop
         else
 
             not_valid
@@ -551,7 +521,7 @@ remove_task(){
         fi
 
         # Wait for user to select from given list
-        read task_index
+        read -p $'Select: ' task_index
 
         # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#content_array[@]} )); then
@@ -566,23 +536,20 @@ remove_task(){
 
             # Remove the selected task directly from diane file
             sed -i "/$remove_task/d" $diane_file
-
-            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+        
+        # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
 
-            # Print error message, but continue the loop
             not_valid
 
-            # If you select q or Q as a task index, you can exit from loop
+        # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
 
-            # If task index not a valid number, q or Q, then print error message and continue the loop
         else
 
             not_valid
-
         fi
 
     # Here finishes the loop
@@ -605,11 +572,13 @@ Options:
 -e      -- edit file
 -r      -- remove file
 -ff     -- selec task and flag it as finished (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
--uf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
+-rf     -- select task and remove flag (@done) in file. To exit from loop, type 'q' or 'Q' then press 'Return'
 -sf     -- show only finished/flagged (@done) tasks
--rf     -- remove all finished/flagged (@done) tasks from file
+-rft    -- remove all finished/flagged (@done) tasks from file
 -rt     -- remove selected task from file. To exit from loop, type 'q' or 'Q' then press 'Return'
--l      -- add label to note. It's recommended to use simple names for labels and to avoid the use of special characters (['!'@#\$%^\&*()_+]). You must write your note after the label between 'single quotes' or "double quotes"
+-l      -- add note with label. It's recommended to use simple names for labels and to avoid the use of special characters (['!'@#\$%^\&*()_+]). You must write your note after the label between 'single quotes' or "double quotes"
+-ll     -- add_label to existing unlabelled task. To exit from loop, type 'q' or 'Q' then press 'Return'
+-rl     -- remove_label. To exit from loop, type 'q' or 'Q' then press 'Return'
 -fl     -- filter labelled tasks. To show all labelled tasks just press 'Return'. To filter for specified label, type the required label's name then press 'Return'
 -rlt    -- remove all tasks from file which are associated with given label name
 -h      -- show this help page
@@ -655,9 +624,9 @@ case $1 in
     -e) edit_diane;;
     -r) remove_diane;;
     -ff) flag_finished_task;;
-    -uf) unflag_finished_task;;
+    -rf) remove_flag;;
     -sf) show_finished_tasks;;
-    -rf) remove_finished_tasks;;
+    -rft) remove_finished_tasks;;
     -rt) remove_task;;
     -l) label=$2 ; input=$3 add_new_task_with_label;;
     -ll) add_label;;
