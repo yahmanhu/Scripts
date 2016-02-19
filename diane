@@ -196,17 +196,21 @@ add_label(){
 
     while true; do
 
+        # Read file content into an array
         readarray content_array < $diane_file
         unlabelled_tasks=()
 
+        # Read array line by line
         for lines in ${content_array[@]}; do
 
+            # If line (task) does not have a label, then add it to list
             if [[ ! $lines =~ \#[A-Z] ]]; then
 
                 unlabelled_tasks+=($lines)
             fi
         done
 
+        # If list (array) not empty...
         if [[ ${unlabelled_tasks[@]} > 0 ]]; then
 
             # ... read the array line by line
@@ -220,7 +224,7 @@ add_label(){
         else
 
             # If array is empty then print message and break the loop
-            echo "There is no task to show."
+            echo "There isn't any unlabelled task to show."
             break 2
 
         fi
@@ -231,26 +235,20 @@ add_label(){
         # If task index is a number and it's lower than the number of the elements of the list...
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unlabelled_tasks[@]} )); then
 
-            echo -e Label name:
-            read label_name
+            # Add label name
+            read -p $'New label: ' label_name
+
             # ... then select a valid index (task) from list
             selected_task=${unlabelled_tasks[$task_index]}
             label_name=$(echo $label_name | awk '{sub("'$label_name'","#'$label_name'"); print toupper($0)}')
 
-            # Fancy output with awk
-            echo -e "$selected_task" | awk_output_long | show_predefined_labels
-
             # Add label to selected task
             labelled_task=$(echo $selected_task | awk '{$2=++i FS $2;}1' | awk '{ $2="'$label_name'"; print }')
+
+            # Fancy output with awk
+            echo -e "\nLabelled:\n$labelled_task\n" | awk_output_long | show_predefined_labels
+
             sed -i "s/$selected_task/$labelled_task/g" $diane_file
-
-
-            #echo -e "DEBUG:"
-            #echo -e $selected_task 
-            #echo -e $label_name 
-            #echo -e $labelled_task
-
-
 
             # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unlabelled_tasks[@]} )); then
@@ -275,6 +273,82 @@ add_label(){
 
 }
 
+remove_label(){
+
+    while true; do
+
+        # Read file content into an array
+        readarray content_array < $diane_file
+        labelled_tasks=()
+
+        # Read array line by line
+        for lines in ${content_array[@]}; do
+
+            # If line (task) does not have a label, then add it to list
+            if [[ $lines =~ \#[A-Z] ]]; then
+
+                labelled_tasks+=($lines)
+            fi
+        done
+
+        # If list (array) not empty...
+        if [[ ${labelled_tasks[@]} > 0 ]]; then
+
+            # ... read the array line by line
+            for tasks in ${!labelled_tasks[@]}; do
+
+                # Format output with awk
+                echo -e $tasks ${labelled_tasks[$tasks]} | awk '{ if ($NF ~ "'$DONE'") $2="'$italic'"$2"'$reset'"; if ($NF ~ "'$DONE'") $NF="'$green'""'$bold'"$NF"'$reset'"; if ($3 ~ "#") $3="'$reset'" "'$label_format'" "'$label_color'"$3 "'$reset'"; if ($NF ~ "'$DONE'" && $3 ~ "#") $4="'$italic'"$4; if ($3 !~ "#") $3="'$italic'"$3 ; print $0}' | show_predefined_labels
+               
+            done
+
+        else
+
+            # If array is empty then print message and break the loop
+            echo "There isn't any unlabelled task to show."
+            break 2
+
+        fi
+
+        # Wait for user to select from given list
+        read task_index
+
+        # If task index is a number and it's lower than the number of the elements of the list...
+        if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#labelled_tasks[@]} )); then
+
+            # ... then select a valid index (task) from list
+            selected_task=${labelled_tasks[$task_index]}
+
+            # Remove label from selected task
+            unlabelled_task=$(echo $selected_task | awk '{$2="" ; sub(" ","") ; print $0}')
+
+            # Fancy output with awk
+            echo -e "\nLabel removed:\n$unlabelled_task\n" | awk_output_long | show_predefined_labels
+
+            sed -i "s/$selected_task/$unlabelled_task/g" $diane_file
+
+            # If task index is a number, but it's equals the number of the element(s) of the list, then it's not a valid a index (because array indexes starts at 0, not 1)
+        elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#labelled_tasks[@]} )); then
+
+            # Print error message, but continue the loop
+            not_valid
+
+            # If you select q or Q as a task index, you can exit from loop
+        elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
+
+            break
+
+            # If task index not a valid number, q or Q, then print error message and continue the loop
+        else
+
+            not_valid
+
+        fi
+
+    # Here finishes the loop
+    done
+
+}
 
 make_array(){
 
@@ -587,6 +661,7 @@ case $1 in
     -rt) remove_task;;
     -l) label=$2 ; input=$3 add_new_task_with_label;;
     -ll) add_label;;
+    -rl) remove_label;;
     -fl) filter=$2 filter_label;;
     -rlt) label=$2 remove_labelled_tasks;;
     -h) help;;
