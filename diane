@@ -258,7 +258,7 @@ add_label(){
         if [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index < ${#unlabelled_tasks[@]} )); then
 
             # Add label name
-            read -p $'New label: ' label_name
+            read -p $'Label: ' label_name
 
             # ... then select a valid index (task) from list
             selected_task=${unlabelled_tasks[$task_index]}
