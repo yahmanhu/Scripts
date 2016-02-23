@@ -37,6 +37,10 @@ file_favorite_tracks=$dir_spotymenu/favorite_tracks
 file_search_history=$dir_spotymenu/search_history
 use_search_history="yes"
 
+# Selected album id saved to this file
+# This way we can quickly access the id for the tracklist command
+file_saved_album_id=/tmp/spotymenu_saved_album_id
+
 # Artist and Album separator in the displayed list
 # Don't use regex chars as a separator!
 separator=" - "
@@ -63,22 +67,21 @@ playing_track_separator="-"
 autoplay_album="yes"
 
 # Use tracklist cache:
-# load tracklists from local files (cache) or always get them via spotify API (a bit slower)
+# save tracklists to local files (for cache) and load tracklists from them
+# Strongly recommended! Spotify's API gives too many 'Error 502' on requests
+# If you don't get a tracklist loaded, try again a bit later
 use_tracklist_cache="yes"
 
-# Tracklist: max length (width) of the 'Artist' and the 'Title' column
-# need to be lower value than the column width settings for the artist and a the title below!
-tl_elem_len=35
+# Extra whitespace for seperating Artist and Title in the tracklist
+tl_separator_whitespace=1
 
-# Tracklist column width
-tl_col_tracknr=4 # should be okay: 2 digit + dot (.) + asterisk (*) (for the currently playing song)
-tl_col_artist=40
-tl_col_title=40
-tl_col_duration=12
-tl_col_id=20
-
-# Separator line (for tracklist and the above the album list)
+# Separator line character (for tracklist and the above the album list):
+# use a single character
 sep_line_char="-"
+
+# Separator line's width = number or characters
+# depends on screen resolution and the font size
+# for reference: 170 is for 768 px wide screen and monospace-10 font
 sep_line_width=170
 
 # For Awesome WM: switch to spotify's tag after selecting or searching
@@ -147,6 +150,8 @@ search_album() {
 
     if [[ ! -z $track_uri ]]; then
         $dbus_stop && $dbus_openuri "string:$track_uri"
+        # Saved selected album's id to a file, this way we can quickly get the 'album_id' when using the :tracklist command.
+        echo "$album_id" > $file_saved_album_id
     else
         exit
     fi
@@ -182,6 +187,8 @@ search_artist() {
 
     if [[ ! -z $track_uri ]]; then
         $dbus_stop && $dbus_openuri "string:$track_uri"
+        # Saved selected album's id to a file, this way we can quickly get the 'album_id' when using the :tracklist command.
+        echo "$album_id" > $file_saved_album_id
     else
         exit
     fi
@@ -200,11 +207,17 @@ search_default() {
     fi
 
     # run search
-    results_list=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=track" |  jq -r '.[].items | map([.artists[].name, .name, .album.name, .id] | join(" | ")) | join("\n")' | $DMENU)
-    track_id=$(echo "$results_list" | awk -F' | ' '{print $NF}')
+    results_list=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=track" |  jq -r '.[].items | map([.artists[].name, .name, .album.name, .id, .album.id] | join(" | ")) | join("\n")' | $DMENU)
+    album_id=$(echo "$results_list" | awk -F' | ' '{print $NF}')
+    track_id=$(echo "$results_list" | awk -F' | ' '{print $(NF-2)}')
 
-    if [[ ! -z $track_id ]]; then
+    #DEBUG
+    #echo "album_id: $album_id"
+    #echo "track_id: $track_id"
+
+    if [[ ! -z $track_id ]] && [[ ! -z $album_id ]]; then
         $dbus_stop && $dbus_openuri "string:spotify:track:$track_id"
+        echo "$album_id" > $file_saved_album_id
     else
         exit
     fi
@@ -233,10 +246,11 @@ else
             -v sep="$separator" \
             -v artist="$playing_artist" \
             -v title="$playing_title" \
+            -v nr="$playing_tracknr" \
             -v album="$playing_album" \
             -v sep_line="$( printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
             -v pfx="$playing_track_prefix" \
-            'BEGIN {print pfx artist sep title" ("album")\n"sep_line}{print $1 sep $2}' $file_albumlist \
+            'BEGIN {print pfx nr". " artist sep title" ("album")\n"sep_line}{print $1 sep $2}' $file_albumlist \
             | $DMENU)
     else
         input=$(awk -F '|' \
@@ -248,10 +262,10 @@ fi
 
 # --- Search ---
 # search for: album
-if [[ $input = /album* ]] || [[ $input = /b* ]]; then
+if [[ $input = /album* ]] || [[ $input =~ ^(\/b .+$) ]]; then
         search_album
     # search for: artist
-elif [[ $input = /artist* ]] || [[ $input = /a* ]]; then
+elif [[ $input = /artist* ]] || [[ $input =~ ^(\/a .+$) ]]; then
         search_artist
     # search for artist and/or track
 elif [[ $input = /* ]]; then
@@ -271,9 +285,9 @@ elif [[ $input = ":?" ]]; then
             echo "Error: can't find $file_search_history" | $DMENU
         else
             search_string=$(tac $file_search_history | uniq | $DMENU)
-            if [[ $search_string = /b* ]] || [[ $search_string = /album* ]]; then
+            if [[ $search_string =~ ^(\/b .+$)  ]] || [[ $search_string = /album* ]]; then
                 input="$search_string" && search_album
-            elif [[ $search_string = /a* ]] || [[ $search_string = /artist* ]]; then
+            elif [[ $search_string =~ ^(\/a .+$)  ]] || [[ $search_string = /artist* ]]; then
                 input="$search_string" && search_artist
             elif [[ $search_string = /* ]]; then
                 input="$search_string" && search_default
@@ -333,12 +347,12 @@ elif [[ $input = :info ]] || [[ $input = :i ]]; then
 
 # --- Add current album to the album list ---
 elif [[ $input = :add ]] || [[ $input = :a ]]; then
-    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
 
-    playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
+    id=$(echo "$playing_trackid" | awk -F':' '{print $3}')
+    playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/tracks/$id" | jq -r '.album.id')
 
     if [[ ! -z $playing_albumid ]]; then
-        add_answer=$(echo -e "Add '$playing_artist - $playing_album' to the albumlist?\nyes\nno" | $DMENU)
+        add_answer=$(echo -e "Add '$playing_artist - $playing_album ($playing_albumid)' to the albumlist?\nyes\nno" | $DMENU)
         [[ $add_answer = "yes" ]] && echo "$playing_albumartist|$playing_album|$playing_albumid" >> $file_albumlist\
            && echo -e "Done:\n'$playing_album' added to the album list\n" | $DMENU \
            || exit
@@ -349,15 +363,16 @@ elif [[ $input = :add ]] || [[ $input = :a ]]; then
 # --- Album show tracklist ---
 elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
 
-    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
-    playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
-
-        # DEBUG
-        #echo "playing_artist: $playing_artist"
-        #echo "playing_albumartist: $playing_albumartist"
-        #echo "playing_album: $playing_album"
-        #echo "query: $query"
-        #echo "playing_albumid: $playing_albumid"
+    # If we are playing a saved album (from the album list) we have its id saved
+    # so we can quickly access to it and don't have to wait for the Spotify API's response.
+    if [[ -f $file_saved_album_id ]]; then
+        playing_albumid=$(cat $file_saved_album_id)
+    # Else get the album's id by searching the currently playing track's id, then we get the album's id from there
+    # This workaround is needed, because Spotify's DBUS doesn't give back the album's id.
+    else
+        id=$(echo "$playing_trackid" | awk -F':' '{print $3}')
+        playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/tracks/$id" | jq -r '.album.id')
+    fi
 
     if [[ ! -z $playing_albumid ]]; then
 
@@ -385,16 +400,18 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
         fi
 
         # format the tracklist and show it
+        max_width_artist=$(echo "$get_list" |  awk -F'|' 'length($2) > max {max=length($2)} END{print max}')
+        max_width_title=$(echo "$get_list" |  awk -F'|' 'length($(NF-2)) > max {max=length($(NF-2))} END{print max}')
+
         tracklist=$(echo "$get_list" \
-            | awk \
+            | awk -F'|' \
             -v pfx="$playing_track_prefix" \
             -v ptf="$playing_tracknr. $playing_artist - $playing_title ($playing_album)" \
-            -v sep_line="$( printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
-            -v len=$tl_elem_len \
-            -v c_nr=$tl_col_tracknr \
-            -v c_a=$tl_col_artist \
-            -v c_t=$tl_col_title \
-            -v c_i=$tl_col_id \
+            -v sep_line="$(printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
+            -v c_nr=4 \
+            -v c_a=$(($max_width_artist+$tl_separator_whitespace)) \
+            -v c_t=$(($max_width_title+$tl_separator_whitespace)) \
+            -v c_i=4 \
             'BEGIN{ \
                 printf "%-1s%-"c_nr"s %-"c_a"s %-"c_t"s %-"c_d"s  %-"c_i"s%-1s\n", \
                 pfx ptf"\n"sep_line"\n",\
@@ -402,11 +419,9 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
             } \
             { \
                 $(NF-1)=$(NF-1)/1000; \
-                if (NF>5) $2=$2" "$3; \
-                if(length($2)>len) $2=substr($2,1,len)"..."; \
-                if(length($(NF-2))>len) $(NF-2)=substr($(NF-2),1,len)"..."; \
-                if ($1 == '"$playing_tracknr"') $1=$1".*"; else $1=$1"."; \
-                printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
+                if ($1 == '"$playing_tracknr"') indicator="*"; else indicator=""; \
+                if ($1 < 10) $1=" "$1; \
+                    printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1"." indicator, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
             }' FS=\| \
                 | $DMENU)
 
@@ -526,6 +541,9 @@ else
                 awm_switch_to_tag
             fi
         fi
+
+        # Saved selected album's id to a file, this way we can quickly get the 'album_id' when using the :tracklist command.
+        echo "$album_id" > $file_saved_album_id
 
         # -- DEBUG ---
         #echo -e "input/album: \033[0;33m$input\033[0m"
