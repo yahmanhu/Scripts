@@ -1,7 +1,0 @@
-#!/bin/bash
-
-path=$(find ~/downloads -iname $1\*)
-
-if [[ $path == *".mp3"* ]] || [[ $path == *".mkv"* ]] || [[ $path == *".mp4"* ]]; then
-    mpv $path
-fi
