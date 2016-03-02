@@ -6,7 +6,27 @@ hist_file=/tmp/dms_hist
 
 _open(){
 
-    xdg-open $1
+    if [[ $dmenu_keywords =~ "google" ]] || [[ $selected_history_element =~ "google" ]]; then
+        xdg-open "https://www.google.com/search?q="$search""
+    elif [[ $dmenu_keywords =~ "yt" ]] || [[ $selected_history_element =~ "yt" ]]; then
+        xdg-open "https://www.youtube.com/results?search_query="$search""
+    elif [[ $dmenu_keywords =~ "kat" ]] || [[ $selected_history_element =~ "kat" ]]; then
+        xdg-open "https://kat.cr/usearch/?q="$search""
+    elif [[ $dmenu_keywords =~ "imdb" ]]|| [[ $selected_history_element =~ "imdb" ]]; then
+        xdg-open "http://www.imdb.com/find?ref_=nv_sr_fn&q="$search"&s=all"
+    elif [[ $dmenu_keywords =~ "duck" ]]|| [[ $selected_history_element =~ "duck" ]]; then
+        xdg-open "https://duckduckgo.com/?q="$search""
+    elif [[ $dmenu_keywords =~ "felirat" ]] || [[ $selected_history_element =~ "felirat" ]]; then
+        xdg-open "http://feliratok.info/?search="$search""
+    elif [[ $dmenu_keywords =~ "rarbg" ]] || [[ $selected_history_element =~ "rarbg" ]]; then
+        xdg-open "https://rarbg.to/torrents.php?search="$search""
+    elif [[ $dmenu_keywords =~ "aur" ]] || [[ $selected_history_element =~ "aur" ]]; then
+        xdg-open "https://www.archlinux.org/packages/?sort=&q="$search"&maintainer=&flagged="
+    # If no search engine, then it was a google search, open it on google
+    elif [[ $selected_history_element != "${keywords[@]}" ]]; then
+        search=$(echo $selected_history_element | sed -e s"/ /+/g")
+        xdg-open "https://www.google.com/search?q="$search""
+    fi
 
 }
 
@@ -17,42 +37,33 @@ _keywords(){
     done
 }
 
+# "Main menu"
 dmenu_keywords=$(_keywords | dmenu -l 5 -i -fn 'monospace-12' )
 
+# Create history file if not exist
 if [[ ! -e $hist_file ]]; then
     touch $hist_file
 fi
-echo $dmenu_keywords
 
-if ! grep -q "$dmenu_keywords" "$hist_file" && [[ "$dmenu_keywords" != "${keywords[@]}" ]]; then
-    echo $dmenu_keywords >> $hist_file
+#echo $dmenu_keywords
+
+# Add search to history if isn't there already (prevent duplicatons)
+if ! grep -q "^$dmenu_keywords$" "$hist_file"; then
+    # If search contains only keywords, then don't add them to history
+    if [[ "$dmenu_keywords" =~  ^google$|^yt$|^kat$|^aur$|^imdb$|^duck$|^felirat$|^rarbg$|^open$|^~$|^/$ ]]; then
+        :
+    else
+        echo $dmenu_keywords >> $hist_file
+    fi
 fi
 
 case $dmenu_keywords in
-
 
      # Search on Google, Youtube, Kickass, IMDb, DuckDuckGo, feliratok.hu, rarbg.to, AUR
     google*|yt*|kat*|imdb*|duck*|felirat*|rarbg*|aur* )
 
         search=$(echo $dmenu_keywords | awk '{ if ($1 ~ /(google|yt|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
-
-        if [[ $dmenu_keywords =~ "google" ]]; then
-            _open "https://www.google.com/search?q="$search""
-        elif [[ $dmenu_keywords =~ "yt" ]]; then
-            _open "https://www.youtube.com/results?search_query="$search""
-        elif [[ $dmenu_keywords =~ "kat" ]]; then
-            _open "https://kat.cr/usearch/?q="$search""
-        elif [[ $dmenu_keywords =~ "imdb" ]]; then
-            _open "http://www.imdb.com/find?ref_=nv_sr_fn&q="$search"&s=all"
-        elif [[ $dmenu_keywords =~ "duck" ]]; then
-            _open "https://duckduckgo.com/?q="$search""
-        elif [[ $dmenu_keywords =~ "felirat" ]]; then
-            _open "http://feliratok.info/?search="$search""
-        elif [[ $dmenu_keywords =~ "rarbg" ]]; then
-            _open "https://rarbg.to/torrents.php?search="$search""
-        elif [[ $dmenu_keywords =~ "aur" ]]; then
-            _open "https://www.archlinux.org/packages/?sort=&q="$search"&maintainer=&flagged="
-        fi
+        _open
         ;;
 
     ~*) # Search local files in home directory and copy selected path to clipboard
@@ -60,49 +71,26 @@ case $dmenu_keywords in
         find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12' | xsel -b
         ;;
 
-
     open*) # Search local files in home directory and open selected one with default application
         search_result=$(sed -e s"/open//" <<< $dmenu_keywords)
         selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
         xdg-open $selected_result
         ;;
 
-    /*) selected_history_element=$(tac $hist_file | dmenu -l 10 -i -fn 'monospace-12')
-        search=$(echo $selected_history_element | awk '{ if ($1 ~ /(google|yt|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
-
-        if [[ $selected_history_element =~ "google" ]]; then
-            _open "https://www.google.com/search?q="$search""
-        elif [[ $selected_history_element =~ "yt" ]]; then
-            _open "https://www.youtube.com/results?search_query="$search""
-        elif [[ $selected_history_element =~ "kat" ]]; then
-            _open "https://kat.cr/usearch/?q="$search""
-        elif [[ $selected_history_element =~ "imdb" ]]; then
-            _open "http://www.imdb.com/find?ref_=nv_sr_fn&q="$search"&s=all"
-        elif [[ $selected_history_element =~ "duck" ]]; then
-            _open "https://duckduckgo.com/?q="$search""
-        elif [[ $selected_history_element =~ "felirat" ]]; then
-            _open "http://feliratok.info/?search="$search""
-        elif [[ $selected_history_element =~ "rarbg" ]]; then
-            _open "https://rarbg.to/torrents.php?search="$search""
-        elif [[ $selected_history_element =~ "aur" ]]; then
-            _open "https://www.archlinux.org/packages/?sort=&q="$search"&maintainer=&flagged="
-        elif [[ $selected_history_element =~ "open" ]]; then
-            search_result=$(sed -e s"/open//" <<< $selected_history_element)
-            selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
-            xdg-open $selected_result
+    /*) # Search in history
+        selected_history_element=$(tac $hist_file | dmenu -l 10 -i -fn 'monospace-12')
+        if [[ $selected_history_element != "" ]]; then
+            search=$(echo $selected_history_element | awk '{ if ($1 ~ /(google|yt|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
+            _open
         fi
         ;;
 
     *) # if no search engine selected, then search automatically on google
-        if [[ $dmenu_keywords != "" ]];then
-
-            search_text=$(sed -e "s/\s/+/g" <<< $dmenu_keywords)
-
-           _open "https://www.google.com/search?q="$search_text""
-
+        if [[ $dmenu_keywords != "" ]]; then
+            search=$(sed -e "s/\s/+/g" <<< $dmenu_keywords)
+            xdg-open "https://www.google.com/search?q="$search""
        else
                :
-
        fi
         ;;
 
