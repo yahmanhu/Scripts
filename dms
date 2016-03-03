@@ -22,6 +22,11 @@ _open(){
         xdg-open "https://rarbg.to/torrents.php?search="$search""
     elif [[ $dmenu_keywords =~ "aur" ]] || [[ $selected_history_element =~ "aur" ]]; then
         xdg-open "https://www.archlinux.org/packages/?sort=&q="$search"&maintainer=&flagged="
+    elif [[ $dmenu_keywords =~ "open" ]] || [[ $selected_history_element =~ "open" ]]; then
+        if [[ $dmenu_keywords != "" ]]; then search_result=$(sed -e s"/open//" <<< $dmenu_keywords); fi
+        if [[ $selected_history_element != "" ]]; then search_result=$(sed -e s"/open//" <<< $selected_history_element); fi
+        selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
+        xdg-open $selected_result
     # If no search engine, then it was a google search, open it on google
     elif [[ $selected_history_element != "${keywords[@]}" ]]; then
         search=$(echo $selected_history_element | sed -e s"/ /+/g")
@@ -72,9 +77,7 @@ case $dmenu_keywords in
         ;;
 
     open*) # Search local files in home directory and open selected one with default application
-        search_result=$(sed -e s"/open//" <<< $dmenu_keywords)
-        selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
-        xdg-open $selected_result
+        _open
         ;;
 
     /*) # Search in history
