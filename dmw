@@ -4,6 +4,10 @@
 
 # Base directory where script search for .mkv, .mp4 and .srt files
 dir=~/downloads
+# Journal file to keep tracking what and when you watched
+journal=~/dmw_journal
+# Date format for journaling
+date=$(date +"%m-%d-%Y-%H:%M")
 # Set dmenu font
 dmenu_font='monospace-12'
 
@@ -14,11 +18,29 @@ find_srt_files(){ find $dir -iname "*.srt";}
 # Find .srt files for the selected media file in it's own directory by changing file extension during find
 find_mp4_srt(){ find $selected_file_dir -iname ${file_name%.mp4}.srt;}
 find_mkv_srt(){ find $selected_file_dir -iname ${file_name%.mkv}.srt;}
-# Play selected file with mpv
-play(){ mpv $selected_file; }
+# Find media files and slice the path leaving only the file names and their extensions
+file_names(){
+    # Check if journal file exist to avoid grep error message
+    if [[ ! -e $journal ]]; then
+        touch $journal
+    fi
+    File_Names=$( ( find_mkv_files  && find_mp4_files ) | awk -F "/" '{print $NF}')
+    for i in $File_Names; do
+        # If file name is in the journal file (if it's watched) then mark it with an * symbol
+        if grep -q "$i" "$journal"; then
+            i=${i//*/\*$i}
+        fi
+        echo $i
+    done
+}
+# Write selected file's name into journal file then play it with mpv
+play(){ 
+    echo $date $file_name >> $journal
+    mpv $selected_file
+}
 
-# Find media and subtitle files, then print them into dmenu, removing the paths and leaving only the filenames
-file_name=$( ( find_mkv_files  && find_mp4_files  && find_srt_files ) | awk -F "/" '{print $NF}' | dmenu -i -l 20 -fn $dmenu_font )
+# Print file names into dmenu
+file_name=$( file_names | sort | dmenu -i -l 20 -fn $dmenu_font )
 
 case $file_name in
 
