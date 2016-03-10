@@ -73,8 +73,6 @@ if [[ ! -e $hist_file ]]; then
     touch $hist_file
 fi
 
-    
-
 # Add search to history if isn't there already (prevent duplicatons)
 if ! grep -q "^$dmenu_search$" "$hist_file"; then
     # If search contains only keywords, then don't add them to history or don't add 'open' and home search (~) at all
@@ -107,7 +105,7 @@ case $dmenu_search in
         _open
         ;;
 
-    /*) # Search in history and open selected element
+    /) # Search in history and open selected element
         selected_history_element=$(tac $hist_file | dmenu -l 10 -i -fn 'monospace-12')
         # Open web search on the web
         if [[ $selected_history_element != "" ]] && [[ ! $selected_history_element =~ "/" ]] && [[ ! $selected_history_element =~ "~" ]]; then
