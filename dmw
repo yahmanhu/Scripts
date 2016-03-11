@@ -1,11 +1,13 @@
 #!/bin/bash
 # Select media (video) file from dmenu and play it with mpv
-# Download subtitle with periscope (https://github.com/patrickdessalle/periscope)
+# Download subtitle automatically requires periscope (https://github.com/patrickdessalle/periscope)
 
 # Base directory where script search for .mkv, .mp4 and .srt files
 dir=~/downloads
 # Journal file to keep tracking what and when you watched
 journal=~/dmw_journal
+# Use periscope (yes or no)?
+use_periscope="yes"
 # Date format for journaling
 date=$(date +"%m-%d-%Y-%H:%M")
 # Set dmenu font
@@ -33,7 +35,7 @@ file_names(){
         echo $i
     done
 }
-# Write selected file's name into journal file then play it with mpv
+# Write selected file's name into journal file and play it with mpv
 play(){ echo $date $file_name >> $journal ; mpv $selected_file; }
 
 # Print file names into dmenu
@@ -54,40 +56,45 @@ selected_file=$(find -iname $file_name)
 selected_file_dir=$(echo $selected_file | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
 
 # If no subtitle (.srt) file for the selected file
-if [[ ! -e $(find_mkv_srt) ]] && [[ ! -e $(find_mp4_srt) ]]; then
-    # Ask for download
-    subtitle=$(echo -e "yes\nno" | dmenu -p "Download subtitle before start?" -i -fn $dmenu_font)
+# Check if we want to use periscope (if use_periscope variable is "yes")
+if [[ $use_periscope == "yes" ]]; then
+    if [[ ! -e $(find_mkv_srt) ]] && [[ ! -e $(find_mp4_srt) ]]; then
+        # Ask for download
+        subtitle=$(echo -e "yes\nno" | dmenu -p "Download subtitle before start?" -i -fn $dmenu_font)
 
-    case $subtitle in
-        # If answer is yes, then inform user via dmenu and try to download subtitle with periscope
-        yes) dmenu -p "Downloading subtitle..." -i -l 1 -fn $dmenu_font  &
+        case $subtitle in
+            # If answer is yes, then inform user via dmenu and try to download subtitle with periscope
+            yes) dmenu -p "Downloading subtitle..." -i -l 1 -fn $dmenu_font  &
 
-            # Kill dmenu after 2 seconds, because we use it just as a feedback
-            if pgrep "dmenu" > /dev/null;then
-                sleep 2
-                pkill dmenu
-            # Download subtitle with periscope (-l means language)
-            fi && periscope -l en $(find $dir -iname $file_name)
+                # Kill dmenu after 2 seconds, because we use it just as a feedback
+                if pgrep "dmenu" > /dev/null;then
+                    sleep 2
+                    pkill dmenu
+                # Download subtitle with periscope (-l means language)
+                fi && periscope -l en $(find $dir -iname $file_name)
 
-            # If periscope can't find subtitle to download, then ask if we want to play the selected file or not
-            if [ $? -ne 0 ]; then subtitle_error=$(echo -e "yes\nno"  |  dmenu -p "Can't find subtitle. Play anyway?" -i -fn $dmenu_font)
+                # If periscope can't find subtitle to download, then ask if we want to play the selected file or not
+                if [[ $? -ne 0 ]]; then subtitle_error=$(echo -e "yes\nno"  |  dmenu -p "Can't find subtitle. Play anyway?" -i -fn $dmenu_font)
 
-                case $subtitle_error in
-                    yes) play;;
-                    no) exit;;
-                esac
+                    case $subtitle_error in
+                        yes) play;;
+                        no) exit;;
+                    esac
 
-            else
-                play
+                else
+                    play
+                fi
+                 ;;
 
-            fi
-             ;;
+            # If we don't want to download subtitle file, then play instantly
+            no) play ;;
+        esac
 
-        # If we don't want to download subtitle file, then play instantly
-        no) play ;;
-    esac
-
-# If there's already a subtitle for the selected file, then play instantly
+    # If there's already a subtitle for the selected file, then play instantly
+    else
+        play
+    fi
+# If we don't want to use periscope (if use_periscope variable is "no"), then play immediately
 else
     play
 fi
