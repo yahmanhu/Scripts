@@ -34,10 +34,7 @@ file_names(){
     done
 }
 # Write selected file's name into journal file then play it with mpv
-play(){ 
-    echo $date $file_name >> $journal
-    mpv $selected_file
-}
+play(){ echo $date $file_name >> $journal ; mpv $selected_file; }
 
 # Print file names into dmenu
 file_name=$( file_names | sort | dmenu -i -l 20 -fn $dmenu_font )
