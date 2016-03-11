@@ -37,6 +37,7 @@ _open(){
     # Search on Arch User Repository
     elif [[ $dmenu_search =~ "aur" ]] || [[ $selected_history_element =~ "aur" ]]; then
         xdg-open "https://www.archlinux.org/packages/?sort=&q="$search"&maintainer=&flagged="
+
     # Open local file, then add it to history
     elif [[ $dmenu_search =~ "open" ]]; then
         search_result=$(sed -e s"/open//" <<< $dmenu_search)
@@ -45,10 +46,16 @@ _open(){
             echo $selected_result >> $hist_file
         fi
             xdg-open $selected_result
+
+    # Open local file from history
+    elif [[ $dmenu_search =~ "/" ]] && [[ ! $dmenu_search =~ "~" ]]; then
+        xdg-open $dmenu_search
+
     # Search for currently played song (spotify)
     elif [[ $dmenu_search == "cps" ]]; then
         search=$(echo $(dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'gsub("\042","")sub("string","")gsub(/^[ \t]+/,"")c&&!--c;/artist/{c=2}' &&  dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:title"/{f=1}') | awk '{ gsub(" ","+"); print }')
         xdg-open "https://www.google.com/search?q="$search""
+
     # If no search engine, then it was a google search, open it on google 
     elif [[ $dmenu_search != "${keywords[@]}" ]] || [[ $selected_history_element != "${keywords[@]}" ]]; then
        if [[ $dmenu_search != "" ]]; then search=$(sed -e "s/\s/+/g" <<< $dmenu_search); fi
@@ -66,7 +73,7 @@ _keywords(){
 }
 
 # "Main menu"
-dmenu_search=$(_keywords | dmenu -l 5 -i -fn 'monospace-12' )
+dmenu_search=$( (_keywords && tac $hist_file ) | dmenu -l 10 -i -fn 'monospace-12' )
 
 # Create history file if not exist
 if [[ ! -e $hist_file ]]; then
@@ -92,12 +99,19 @@ case $dmenu_search in
         _open
         ;;
 
-    ~*) # Search local files in home directory, copy selected path to clipboard, then add it to history
-        search_result=$(sed -e s"/~//" <<< $dmenu_search)
-        selected_path=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
-        if [[ $selected_path != "" ]]; then
-            echo $selected_path | xsel -b
-            echo "~ $selected_path" >> $hist_file
+    ~*) # Search local files in home directory, copy selected path to clipboard
+        # Select from history
+        if [[ $dmenu_search =~ "~" ]] && [[ $dmenu_search =~ "/" ]]; then
+            echo $dmenu_search | sed -e "s/~//" | xsel -b
+        # Search for new item instead of select from history
+        elif [[ $dmenu_search =~ "~" ]] && [[ ! $dmenu_search =~ "/" ]]; then
+
+            search_result=$(sed -e s"/~//" <<< $dmenu_search)
+            selected_path=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
+            if [[ $selected_path != "" ]]; then
+                echo $selected_path | xsel -b
+                echo "~ $selected_path" >> $hist_file
+            fi
         fi
         ;;
 
