@@ -1,36 +1,36 @@
 #!/bin/bash
-# Select media (video) file from dmenu and play it with mpv
-# Download subtitle automatically requires periscope (https://github.com/patrickdessalle/periscope)
+# Select media (video) file from dmenu and play it with a media player
+# Download subtitle automatically - requires periscope (https://github.com/patrickdessalle/periscope)
 
-# Base directory where script search for .mkv, .mp4 and .srt files
+# Base directory where script looks for media and .srt files.
+# For search in multiple directories use array (e.g.: dir=(dir1 dir2) without quotes
 dir=~/downloads
 # Journal file to keep tracking what and when you watched
 journal=~/dmw_journal
 # Use periscope (yes or no)?
 use_periscope="yes"
 # Date format for journaling
-date=$(date +"%m-%d-%Y-%H:%M")
-# Set dmenu font
-dmenu_font='monospace-12'
+date=$(date +"%Y-%m-%d-%H:%M")
+# dmenu style
+[[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
+#DMENU='dmenu -i -l 20 -fn monospace-12'
+# dmenu font for subtitle prompt
+subtitle_prompt_font="monospace-12"
+# media player command
+player="mpv"
 
-# Find .mkv, .mp4 and .srt files
-find_mkv_files(){ find $dir -iname "*.mkv";}
-find_mp4_files(){ find $dir -iname "*.mp4";}
-find_srt_files(){ find $dir -iname "*.srt";}
+# Find files 
+find_files(){ find "$dir" \( -iregex ".+\.\(mkv\|mp4\)" ! -iname "sample.mkv" \); }
 # Find .srt files for the selected media file in it's own directory by changing file extension during find
-find_mp4_srt(){ find "$selected_file_dir" -iname ${file_name%.mp4}.srt;}
-find_mkv_srt(){ find "$selected_file_dir" -iname ${file_name%.mkv}.srt;}
+find_srt() { find "$selected_file_dir" -iname "${file_name%.mkv}.srt" -o -iname "${file_name%.mp4}.srt"; }
 # Find media files and slice the path leaving only the file names and their extensions
 file_names(){
     # Check if journal file exist to avoid grep error message
     if [[ ! -e $journal ]]; then
         touch $journal
     fi
-    File_Names=$( ( find_mkv_files  && find_mp4_files ) | awk -F "/" '{print $NF}')
-    readarray -t name_array <<< "$File_Names"
-    #echo Len of array "${#name_array[@]}"
-    #echo "${name_array[@]}"
-    #for i in $File_Names; do
+    filename_list=$( (find_files) | awk -F "/" '{print $NF}')
+    readarray -t name_array <<< "$filename_list"
     for i in "${name_array[@]}"; do
         # Escape the junk in the selected file's name
         i=$(echo "$i" | sed 's/ /\ /g;s/\[/\\[/g;s/\]/\\]/g')
@@ -40,11 +40,11 @@ file_names(){
         echo "$i"
     done
 }
-# Write selected file's name into journal file and play it with mpv
-play(){ mpv "$selected_file"; }
+# Play function
+play(){ "$player" "$selected_file"; }
 
 # Print file names into dmenu
-file_name=$( file_names | sort | dmenu -i -l 20 -fn $dmenu_font )
+file_name=$( file_names | sort | $DMENU)
 
 case $file_name in
 
@@ -57,32 +57,31 @@ case $file_name in
 esac
 
 # Get the selected file's complete path
-selected_file=$(find $dir -iname "$file_name")
-echo "$selected_file"
+selected_file=$(find "$dir" -iname "$file_name")
+#echo "$selected_file"
 # Get the path of the directory that contains the selected file
 selected_file_dir=$(echo "$selected_file" | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
 
 # If no subtitle (.srt) file for the selected file
 # Check if we want to use periscope (if use_periscope variable is "yes")
 if [[ $use_periscope == "yes" ]]; then
-    if [[ ! -e $(find_mkv_srt) ]] && [[ ! -e $(find_mp4_srt) ]]; then
+    if [[ ! -e $(find_srt) ]]; then
         # Ask for download
-        subtitle=$(echo -e "yes\nno" | dmenu -p "Download subtitle before start?" -i -fn $dmenu_font)
+        subtitle=$(echo -e "yes\nno" | dmenu -p "Download subtitle before start?" -i -fn $subtitle_prompt_font)
 
         case $subtitle in
             # If answer is yes, then inform user via dmenu and try to download subtitle with periscope
-            yes) dmenu -p "Downloading subtitle..." -i -l 1 -fn $dmenu_font  &
+            yes) dmenu -p "Downloading subtitle..." -fn $subtitle_prompt_font &
 
                 # Kill dmenu after 2 seconds, because we use it just as a feedback
                 if pgrep "dmenu" > /dev/null;then
                     sleep 2
                     pkill dmenu
                 # Download subtitle with periscope (-l means language)
-                #fi && periscope -l en $(find $dir -iname $file_name)
                 fi && periscope -l en "$selected_file"
 
                 # If periscope can't find subtitle to download, then ask if we want to play the selected file or not
-                if [[ $? -ne 0 ]]; then subtitle_error=$(echo -e "yes\nno"  |  dmenu -p "Can't find subtitle. Play anyway?" -i -fn $dmenu_font)
+                if [[ $? -ne 0 ]]; then subtitle_error=$(echo -e "yes\nno"  |  dmenu -p "Can't find subtitle. Play anyway?" -i -fn $subtitle_prompt_font)
 
                     case $subtitle_error in
                         yes) play;;
@@ -100,9 +99,9 @@ if [[ $use_periscope == "yes" ]]; then
 
     # If there's already a subtitle for the selected file, then play instantly
     else
-        play
+        play;
     fi
 # If we don't want to use periscope (if use_periscope variable is "no"), then play immediately
 else
-    play
+    play;
 fi
