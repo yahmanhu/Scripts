@@ -3,24 +3,24 @@
 # Download subtitle automatically - requires periscope (https://github.com/patrickdessalle/periscope)
 
 # Base directory where script looks for media and .srt files.
-# For search in multiple directories use array (e.g.: dir=(dir1 dir2) without quotes
-dir=~/downloads
+# For search in multiple directories use an array without quotes, e.g.:
+# dir=(~/dir1 ~/dir2)
+dir=(~/downloads)
 # Journal file to keep tracking what and when you watched
 journal=~/dmw_journal
 # Use periscope (yes or no)?
 use_periscope="yes"
 # Date format for journaling
-date=$(date +"%Y-%m-%d-%H:%M")
+date=$(date +"%d-%m-%Y-%H:%M")
 # dmenu style
 [[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
-#DMENU='dmenu -i -l 20 -fn monospace-12'
 # dmenu font for subtitle prompt
 subtitle_prompt_font="monospace-12"
 # media player command
 player="mpv"
 
 # Find files 
-find_files(){ find "$dir" \( -iregex ".+\.\(mkv\|mp4\)" ! -iname "sample.mkv" \); }
+find_files(){ find "${dir[@]}" \( -iregex ".+\.\(mkv\|mp4\)" ! -iname "sample.mkv" \); }
 # Find .srt files for the selected media file in it's own directory by changing file extension during find
 find_srt() { find "$selected_file_dir" -iname "${file_name%.mkv}.srt" -o -iname "${file_name%.mp4}.srt"; }
 # Find media files and slice the path leaving only the file names and their extensions
@@ -57,7 +57,7 @@ case $file_name in
 esac
 
 # Get the selected file's complete path
-selected_file=$(find "$dir" -iname "$file_name")
+selected_file=$(find "${dir[@]}" -iname "$file_name")
 #echo "$selected_file"
 # Get the path of the directory that contains the selected file
 selected_file_dir=$(echo "$selected_file" | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
