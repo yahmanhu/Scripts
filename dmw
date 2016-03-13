@@ -32,7 +32,9 @@ file_names(){
     #echo "${name_array[@]}"
     #for i in $File_Names; do
     for i in "${name_array[@]}"; do
-        if grep -q $i "$journal"; then
+        # Escape the junk in the selected file's name
+        i=$(echo "$i" | sed 's/ /\ /g;s/\[/\\[/g;s/\]/\\]/g')
+        if grep -q "$i" "$journal"; then
             i=${i//*/\*$i}
         fi
         echo "$i"
@@ -48,16 +50,8 @@ case $file_name in
 
     # If no file selected, then exit the program
     "") exit;;
-    # If filename contains brackets, then escape them with sed
-    *) 
-        #echo "$file_name"
-        if [[ "$file_name" == *[\[\]]* ]]; then file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name) ; fi
-        if [[ "$file_name" =~ " " ]]; then file_name=$(sed 's/ /\ /g' <<< $file_name) ; fi
-        if [[ "$file_name" =~ "*" ]]; then
-            file_name=$(echo "$file_name" | sed 's/\*//g' )
-        fi
-        #echo !!!!!!! "$file_name"
-        echo $date $file_name >> $journal
+    # Remove \ and * symbols before write into journal
+    *) echo "$date $(echo $file_name | sed 's/\\//g;s/*//g')" >> $journal
         ;;
 
 esac
