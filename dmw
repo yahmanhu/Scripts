@@ -18,8 +18,8 @@ find_mkv_files(){ find $dir -iname "*.mkv";}
 find_mp4_files(){ find $dir -iname "*.mp4";}
 find_srt_files(){ find $dir -iname "*.srt";}
 # Find .srt files for the selected media file in it's own directory by changing file extension during find
-find_mp4_srt(){ find $selected_file_dir -iname ${file_name%.mp4}.srt;}
-find_mkv_srt(){ find $selected_file_dir -iname ${file_name%.mkv}.srt;}
+find_mp4_srt(){ find "$selected_file_dir" -iname ${file_name%.mp4}.srt;}
+find_mkv_srt(){ find "$selected_file_dir" -iname ${file_name%.mkv}.srt;}
 # Find media files and slice the path leaving only the file names and their extensions
 file_names(){
     # Check if journal file exist to avoid grep error message
@@ -36,7 +36,7 @@ file_names(){
     done
 }
 # Write selected file's name into journal file and play it with mpv
-play(){ echo $date $file_name >> $journal ; mpv $selected_file; }
+play(){ echo $date $file_name >> $journal ; mpv "$selected_file"; }
 
 # Print file names into dmenu
 file_name=$( file_names | sort | dmenu -i -l 20 -fn $dmenu_font )
@@ -46,14 +46,15 @@ case $file_name in
     # If no file selected, then exit the program
     "") exit;;
     # If filename contains brackets, then escape them with sed
-    *) if [[ "$file_name" == *[\[\]]* ]]; then file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name) ; fi;;
+    *) if [[ "$file_name" == *[\[\]]* ]]; then file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name) ; fi
+        if [[ "$file_name" =~ " " ]]; then file_name=$(sed 's/ /\ /g' <<< $file_name) ; fi;;
 
 esac
 
 # Get the selected file's complete path
-selected_file=$(find -iname $file_name)
+selected_file=$(find -iname "$file_name")
 # Get the path of the directory that contains the selected file
-selected_file_dir=$(echo $selected_file | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
+selected_file_dir=$(echo "$selected_file" | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
 
 # If no subtitle (.srt) file for the selected file
 # Check if we want to use periscope (if use_periscope variable is "yes")
