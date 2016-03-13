@@ -32,15 +32,14 @@ file_names(){
     #echo "${name_array[@]}"
     #for i in $File_Names; do
     for i in "${name_array[@]}"; do
-        # If file name is in the journal file (if it's watched) then mark it with an * symbol
-        if grep -q "$i" "$journal"; then
+        if grep -q $i "$journal"; then
             i=${i//*/\*$i}
         fi
-        echo $i
+        echo "$i"
     done
 }
 # Write selected file's name into journal file and play it with mpv
-play(){ echo $date $file_name >> $journal ; mpv "$selected_file"; }
+play(){ mpv "$selected_file"; }
 
 # Print file names into dmenu
 file_name=$( file_names | sort | dmenu -i -l 20 -fn $dmenu_font )
@@ -50,13 +49,21 @@ case $file_name in
     # If no file selected, then exit the program
     "") exit;;
     # If filename contains brackets, then escape them with sed
-    *) if [[ "$file_name" == *[\[\]]* ]]; then file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name) ; fi
-        if [[ "$file_name" =~ " " ]]; then file_name=$(sed 's/ /\ /g' <<< $file_name) ; fi;;
+    *) 
+        #echo "$file_name"
+        if [[ "$file_name" == *[\[\]]* ]]; then file_name=$(sed 's/\[/\\[/g;s/\]/\\]/g' <<< $file_name) ; fi
+        if [[ "$file_name" =~ " " ]]; then file_name=$(sed 's/ /\ /g' <<< $file_name) ; fi
+        if [[ "$file_name" =~ "*" ]]; then
+            file_name=$(echo "$file_name" | sed 's/\*//g' )
+        fi
+        #echo !!!!!!! "$file_name"
+        echo $date $file_name >> $journal
+        ;;
 
 esac
 
 # Get the selected file's complete path
-selected_file=$(find -iname "$file_name")
+selected_file=$(find $dir -iname "$file_name")
 echo "$selected_file"
 # Get the path of the directory that contains the selected file
 selected_file_dir=$(echo "$selected_file" | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
