@@ -27,7 +27,11 @@ file_names(){
         touch $journal
     fi
     File_Names=$( ( find_mkv_files  && find_mp4_files ) | awk -F "/" '{print $NF}')
-    for i in $File_Names; do
+    readarray -t name_array <<< "$File_Names"
+    #echo Len of array "${#name_array[@]}"
+    #echo "${name_array[@]}"
+    #for i in $File_Names; do
+    for i in "${name_array[@]}"; do
         # If file name is in the journal file (if it's watched) then mark it with an * symbol
         if grep -q "$i" "$journal"; then
             i=${i//*/\*$i}
@@ -53,6 +57,7 @@ esac
 
 # Get the selected file's complete path
 selected_file=$(find -iname "$file_name")
+echo "$selected_file"
 # Get the path of the directory that contains the selected file
 selected_file_dir=$(echo "$selected_file" | awk -F "/" 'BEGIN{OFS="/"} {$NF=""; print $0}')
 
@@ -72,7 +77,8 @@ if [[ $use_periscope == "yes" ]]; then
                     sleep 2
                     pkill dmenu
                 # Download subtitle with periscope (-l means language)
-                fi && periscope -l en $(find $dir -iname $file_name)
+                #fi && periscope -l en $(find $dir -iname $file_name)
+                fi && periscope -l en "$selected_file"
 
                 # If periscope can't find subtitle to download, then ask if we want to play the selected file or not
                 if [[ $? -ne 0 ]]; then subtitle_error=$(echo -e "yes\nno"  |  dmenu -p "Can't find subtitle. Play anyway?" -i -fn $dmenu_font)
