@@ -3,6 +3,8 @@
 
 keywords=("google" "yt" "kat" "aur" "imdb" "duck" "felirat" "rarbg" "open" "cps" "~" "/")
 hist_file=~/dms_history
+[[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
+
 
 _open(){
 
@@ -41,7 +43,7 @@ _open(){
     # Open local file, then add it to history
     elif [[ $dmenu_search =~ "open" ]]; then
         search_result=$(sed -e s"/open//" <<< $dmenu_search)
-        selected_result=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
+        selected_result=$(find ~ -iname $search_result\* | $DMENU)
         if [[ $selected_result != "" ]] && ! grep -q "^$selected_result$" "$hist_file"; then
             echo $selected_result >> $hist_file
         fi
@@ -73,7 +75,7 @@ _keywords(){
 }
 
 # "Main menu"
-dmenu_search=$( (_keywords && tac $hist_file ) | dmenu -l 10 -i -fn 'monospace-12' )
+dmenu_search=$( (_keywords && tac $hist_file ) | $DMENU )
 
 # Create history file if not exist
 if [[ ! -e $hist_file ]]; then
@@ -107,7 +109,7 @@ case $dmenu_search in
         elif [[ $dmenu_search =~ "~" ]] && [[ ! $dmenu_search =~ "/" ]]; then
 
             search_result=$(sed -e s"/~//" <<< $dmenu_search)
-            selected_path=$(find ~ -iname $search_result\* | dmenu -l 10 -i -fn 'monospace-12')
+            selected_path=$(find ~ -iname $search_result\* | $DMENU)
             if [[ $selected_path != "" ]]; then
                 echo $selected_path | xsel -b
                 echo "~ $selected_path" >> $hist_file
@@ -120,7 +122,7 @@ case $dmenu_search in
         ;;
 
     /) # Search in history and open selected element
-        selected_history_element=$(tac $hist_file | dmenu -l 10 -i -fn 'monospace-12')
+        selected_history_element=$(tac $hist_file | $DMENU)
         # Open web search on the web
         if [[ $selected_history_element != "" ]] && [[ ! $selected_history_element =~ "/" ]] && [[ ! $selected_history_element =~ "~" ]]; then
             search=$(echo $selected_history_element | awk '{ if ($1 ~ /(google|yt|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')

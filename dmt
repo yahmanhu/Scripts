@@ -1,12 +1,13 @@
 #!/bin/bash
 # View running processes in dmenu and kill selected
 
-tasks=$(ps aux | awk 'BEGIN {OFS="    "} {print $2,$3,$4,$5,$6,$11}' | column -t | dmenu -i -l 20 -fn "monospace-10")
+[[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
+tasks=$(ps aux | awk 'BEGIN {OFS="    "} {print $2,$3,$4,$5,$6,$11}' | column -t | $DMENU)
 selected_task=$(echo $tasks | awk '{print $6}')
 
 if [[ ! -z $selected_task ]]; then
 
-    terminate=$(echo -e "Yes\nNo" | dmenu -p "Terminate $selected_task?" -i -sb "red" -sf "black" -fn "monospace-10")
+    terminate=$(echo -e "Yes\nNo" | dmenu -p "Terminate $selected_task?" -i -sb "red" -sf "black" -fn "Terminus")
 
     case $terminate in
         Yes) killall $selected_task;;

@@ -15,7 +15,7 @@ date=$(date +"%d-%m-%Y-%H:%M")
 # dmenu style
 [[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
 # dmenu font for subtitle prompt
-subtitle_prompt_font="monospace-12"
+subtitle_prompt_font="Terminus"
 # media player command
 player="mpv"
 
