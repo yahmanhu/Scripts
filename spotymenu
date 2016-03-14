@@ -46,12 +46,13 @@ file_saved_album_id=/tmp/spotymenu_saved_album_id
 separator=" - "
 
 # Colors
-font="monospace-10"
+font="Terminus"
 list_size="20"
 normal_bg="#181818"
 normal_fg="#ccc"
-selected_bg="#1DB954"
-selected_fg="#181818"
+#selected_bg="#1DB954"
+selected_fg="#1DB954"
+selected_bg="#181818"
 selected_delete_bg="#c30000"
 selected_delete_fg="#ffffff"
 
