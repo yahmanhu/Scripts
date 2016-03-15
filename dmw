@@ -9,7 +9,7 @@ dir=(~/downloads)
 # Journal file to keep tracking what and when you watched
 journal=~/dmw_journal
 # Use periscope (yes or no)?
-use_periscope="yes"
+use_periscope="no"
 # Date format for journaling
 date=$(date +"%d-%m-%Y-%H:%M")
 # dmenu style
@@ -19,7 +19,7 @@ subtitle_prompt_font="Terminus"
 # media player command
 player="mpv"
 
-# Find files 
+# Find files
 find_files(){ find "${dir[@]}" \( -iregex ".+\.\(mkv\|mp4\)" ! -iname "sample.mkv" \); }
 # Find .srt files for the selected media file in it's own directory by changing file extension during find
 find_srt() { find "$selected_file_dir" -iname "${file_name%.mkv}.srt" -o -iname "${file_name%.mp4}.srt"; }
@@ -45,13 +45,22 @@ play(){ "$player" "$selected_file"; }
 
 # Print file names into dmenu
 file_name=$( file_names | sort | $DMENU)
+echo "$file_name"
 
 case $file_name in
 
     # If no file selected, then exit the program
     "") exit;;
-    # Remove \ and * symbols before write into journal
-    *) echo "$date $(echo $file_name | sed 's/\\//g;s/*//g')" >> $journal
+
+    *)  # Remove \ and * symbols before write into journal
+        file_name=$(echo "$file_name" | sed 's/\\//g;s/*//g')
+        # If file name is already in the journal, then don't add it agian
+        if grep "$file_name" "$journal"; then
+            :
+        else
+            #echo "$date $(echo $file_name | sed 's/\\//g;s/*//g')" >> $journal
+            echo "$date" "$file_name" >> $journal
+        fi
         ;;
 
 esac
