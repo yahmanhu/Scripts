@@ -1,12 +1,18 @@
 #!/bin/bash
 # Turn wifi on/off
+# If no wi-fi nor ethernet connection then turn off awesome mailchecker
 
 check_wifi=$(cat /sys/class/net/wlp3s0/operstate)
+check_eth=$(cat /sys/class/net/enp4s0/operstate)
 
-if [[ $check_wifi = *"up"* ]]; then
+if [[ $check_wifi = *"up"* ]] ; then
     sudo rfkill block wifi
+    if [[ $check_eth = *"down"* ]]; then
+        echo 'off' > $HOME/.config/awesome/mailchecker
+    fi
     notify-send Wi-Fi Off
 else
     sudo rfkill unblock wifi
+    echo 'on' > $HOME/.config/awesome/mailchecker
     notify-send Wi-Fi On
 fi
