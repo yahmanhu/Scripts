@@ -51,7 +51,7 @@ if [[ $full_newmail_count -ge "1" ]]; then
 
     # Check if has any new mail, else don't write the account name in the full list
     if [[ $mail_1_newmail_count -ge "1" ]]; then
-        mail_1_listing="\n──────[ $mail_1_account ]──────────────────────────────────────\n$mail_1_newmail_list\n"
+        mail_1_listing="\n$mail_1_newmail_list\n"
     else
         mail_1_listing=""
     fi
@@ -85,7 +85,7 @@ echo -e "$full_newmail_count" > $file_newmail_count
 # Pipe newmail count into awesome-client (refresh mail widget)
 if [[ $full_newmail_count -ge "1" ]]; then
     #echo "mail_widget:set_markup(\" <span background='#DC0000' color='#ffffff'>${full_newmail_count}new</span> \")" | awesome-client
-    echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: </span><span background='#DC0000' color='#ffffff'> ${full_newmail_count} mail </span>\")" | awesome-client
+    echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: </span><span background='#DC0000' color='#ffffff'> ${full_newmail_count} </span>\")" | awesome-client
 else
     #echo 'mail_widget:set_text(" 0 ")' | awesome-client
     echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: 0</span>\")" | awesome-client
