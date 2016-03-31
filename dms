@@ -1,7 +1,7 @@
 #!/bin/bash
 # Search the web or your home directory with dmenu
 
-keywords=("google" "yt" "kat" "aur" "imdb" "duck" "felirat" "rarbg" "open" "cps" "~" "/")
+keywords=("google" "ytb" "kat" "aur" "imdb" "duck" "felirat" "rarbg" "open" "cps" "~" "/")
 hist_file=~/dms_history
 [[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
 
@@ -19,7 +19,7 @@ _open(){
     elif [[ $dmenu_search =~ "google" ]] || [[ $selected_history_element =~ "google" ]]; then
         xdg-open "https://www.google.com/search?q="$search""
     # Search on Youtube
-    elif [[ $dmenu_search =~ "yt" ]] || [[ $selected_history_element =~ "yt" ]]; then
+    elif [[ $dmenu_search =~ "ytb" ]] || [[ $selected_history_element =~ "ytb" ]]; then
         xdg-open "https://www.youtube.com/results?search_query="$search""
     # Search on Kickass
     elif [[ $dmenu_search =~ "kat" ]] || [[ $selected_history_element =~ "kat" ]]; then
@@ -58,7 +58,7 @@ _open(){
         search=$(echo $(dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'gsub("\042","")sub("string","")gsub(/^[ \t]+/,"")c&&!--c;/artist/{c=2}' &&  dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:title"/{f=1}') | awk '{ gsub(" ","+"); print }')
         xdg-open "https://www.google.com/search?q="$search""
 
-    # If no search engine, then it was a google search, open it on google 
+    # If no search engine, then it was a google search, open it on google
     elif [[ $dmenu_search != "${keywords[@]}" ]] || [[ $selected_history_element != "${keywords[@]}" ]]; then
        if [[ $dmenu_search != "" ]]; then search=$(sed -e "s/\s/+/g" <<< $dmenu_search); fi
        if [[ $selected_history_element != "" ]]; then search=$(sed -e "s/\s/+/g" <<< $selected_history_element); fi
@@ -85,7 +85,7 @@ fi
 # Add search to history if isn't there already (prevent duplicatons)
 if ! grep -q "^$dmenu_search$" "$hist_file"; then
     # If search contains only keywords, then don't add them to history or don't add 'open' and home search (~) at all
-    if [[ "$dmenu_search" =~  ^google$|^yt$|^kat$|^aur$|^imdb$|^duck$|^felirat$|^rarbg$|^/$|^open$|^open.*|^~$|^~.*|^cps$|^:clr.* ]]; then
+    if [[ "$dmenu_search" =~  ^google$|^ytb$|^kat$|^aur$|^imdb$|^duck$|^felirat$|^rarbg$|^/$|^open$|^open.*|^~$|^~.*|^cps$|^:clr.* ]]; then
         :
     else
         echo $dmenu_search >> $hist_file
@@ -95,9 +95,9 @@ fi
 case $dmenu_search in
 
      # Search on Google, Youtube, Kickass, IMDb, DuckDuckGo, feliratok.info, rarbg.to, AUR
-    google*|yt*|kat*|imdb*|duck*|felirat*|rarbg*|aur* )
+    google*|ytb*|kat*|imdb*|duck*|felirat*|rarbg*|aur* )
 
-        search=$(echo $dmenu_search | awk '{ if ($1 ~ /(google|yt|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
+        search=$(echo $dmenu_search | awk '{ if ($1 ~ /(google|ytb|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
         _open
         ;;
 
@@ -125,7 +125,7 @@ case $dmenu_search in
         selected_history_element=$(tac $hist_file | $DMENU)
         # Open web search on the web
         if [[ $selected_history_element != "" ]] && [[ ! $selected_history_element =~ "/" ]] && [[ ! $selected_history_element =~ "~" ]]; then
-            search=$(echo $selected_history_element | awk '{ if ($1 ~ /(google|yt|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
+            search=$(echo $selected_history_element | awk '{ if ($1 ~ /(google|ytb|kat|imdb|duck|felirat|rarbg|open)/) {$1="" ; gsub(" ","+")} else if ($1 ~ aur) {$1=""; gsub(" ","")}; print $0}')
             _open
         # Open local files with default application
         elif [[ $selected_history_element =~ "/" ]] && [[ ! $selected_history_element =~ "~" ]]; then
