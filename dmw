@@ -22,7 +22,8 @@ player="mpv"
 # Find files
 find_files(){ find "${dir[@]}" \( -iregex ".+\.\(mkv\|mp4\)" ! -iname "sample.mkv" \); }
 # Find .srt files for the selected media file in it's own directory by changing file extension during find
-find_srt() { find "$selected_file_dir" -iname "${file_name%.mkv}.srt" -o -iname "${file_name%.mp4}.srt"; }
+#find_srt() { find "$selected_file_dir" -iname "${file_name%.mkv}.srt" -o -iname "${file_name%.mp4}.srt"; }
+find_srt() { find "$selected_file_dir" -iname *.srt; }
 # Find media files and slice the path leaving only the file names and their extensions
 file_names(){
     # Check if journal file exist to avoid grep error message
