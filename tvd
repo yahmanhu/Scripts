@@ -41,7 +41,7 @@ date_today="$(date +'%Y-%m-%d')"
 date_tomorrow="$(date +'%Y-%m-%d' -d tomorrow)"
 
 # array of channels; used for search_multi()
-channels=("tv2" "super_tv2" "rtl_klub" "viasat3" "viasat6" "cool" "comedy_central" "film_p" "film_cafe" "pro4" "paramount" "story4")
+channels=("tv2" "super_tv2" "rtl_klub" "viasat3" "viasat6" "cool" "comedy_central" "film_p" "film_cafe" "pro4" "paramount" "story4" "m1" "m2")
 
 # ===========================================================================
 #   Functions
@@ -88,7 +88,7 @@ show_today() {
     else
         time_regex_format=$time_regex
     fi
-    
+
     # if no channel name given, show all from the channels array
     if [[ -z $tv ]]; then
         tv="${channels[@]}"
