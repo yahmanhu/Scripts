@@ -1,0 +1,29 @@
+#!/bin/bash
+# Use diane via dmenu
+
+[[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20 Terminus'
+
+diane_file=~/diane
+date=$(date +"<%m-%d-%Y-%H:%M:%S>")
+input=$(dmenu -i -l 20 -fn Terminus)
+
+# If input not empty
+if [[ ! -z "$input" ]]; then
+    # Show diane file content and copy selected to clipboard without date
+    if [[ "$input" == "l" ]]; then
+        cat "$diane_file" | $DMENU | cut -d\  -f2- | xsel -b
+    # Remove task from diane file
+    elif [[ "$input" == "r" ]]; then
+        remove_task=$(cat "$diane_file" | $DMENU)
+        sed -i "/$remove_task/d" $diane_file
+    # Clear diane file
+    elif [[ "$input" == "clr" ]]; then
+        sed -i "/.*/d" $diane_file
+    else
+    # Add input to diane file
+        echo "$date" "$input" >> "$diane_file"
+    fi
+# If input is empty, do nothing
+else
+    :
+fi
