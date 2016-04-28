@@ -9,7 +9,7 @@ dir=~/downloads
 # Journal file to keep tracking what and when you watched
 journal=~/dmw_journal
 # Use periscope (yes or no)?
-use_periscope="yes"
+use_periscope="no"
 # Date format for journaling
 date=$(date +"%d-%m-%Y-%H:%M")
 # dmenu style
