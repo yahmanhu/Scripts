@@ -10,4 +10,3 @@ elif [[ $check_layout = *"gb"* ]]; then
 	setxkbmap hu
 	notify-send "Keyboard layout HU"
 fi
-
