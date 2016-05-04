@@ -64,10 +64,10 @@ if [[ $full_newmail_count -ge "1" ]]; then
     #fi
 
     # Create the final list
-    full_newmail_list="\nLast checked: $checkdatetime\n$mail_1_listing"
+    full_newmail_list="Last checked: $checkdatetime\n$mail_1_listing"
 
 else
-    full_newmail_list="\n No new mail.\n Last checked: $checkdatetime"
+    full_newmail_list="No new mail.\nLast checked: $checkdatetime"
 fi
 
 # Write the list and the count number to files
@@ -83,13 +83,13 @@ echo -e "$full_newmail_count" > $file_newmail_count
 # For awesomeWM --------------------------------------
 
 # Pipe newmail count into awesome-client (refresh mail widget)
-if [[ $full_newmail_count -ge "1" ]]; then
-    #echo "mail_widget:set_markup(\" <span background='#DC0000' color='#ffffff'>${full_newmail_count}new</span> \")" | awesome-client
-    echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: </span><span background='#DC0000' color='#ffffff'> ${full_newmail_count} </span>\")" | awesome-client
-else
-    #echo 'mail_widget:set_text(" 0 ")' | awesome-client
-    echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: 0</span>\")" | awesome-client
-fi
+#if [[ $full_newmail_count -ge "1" ]]; then
+    ##echo "mail_widget:set_markup(\" <span background='#DC0000' color='#ffffff'>${full_newmail_count}new</span> \")" | awesome-client
+    #echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: </span><span background='#DC0000' color='#ffffff'> ${full_newmail_count} </span>\")" | awesome-client
+#else
+    ##echo 'mail_widget:set_text(" 0 ")' | awesome-client
+    #echo "mail_widget:set_markup(\"<span color='#FFFFFF'>Mail: 0</span>\")" | awesome-client
+#fi
 
 # Log: append entries--------------------------------------
 
