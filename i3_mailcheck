@@ -1,0 +1,7 @@
+#!/bin/bash
+
+gmailcheck.sh
+new_mail_count=$(cat ~/.mutt/newmail_count)
+
+echo Mail: "$new_mail_count"
+[[ "$new_mail_count" > 0 ]] && exit 33 || exit 0
