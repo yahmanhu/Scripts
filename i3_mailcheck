@@ -1,7 +1,19 @@
 #!/bin/bash
 
+# Mail checker script for i3_blocks
+# Using gmailcheck.sh
+# You can refresh the block manually by clicking on it with mouse button 1
+# If there's new mail, mutt will start in new window after clicking on the block
+
 gmailcheck.sh
 new_mail_count=$(cat ~/.mutt/newmail_count)
 
 echo Mail: "$new_mail_count"
+
+case $BLOCK_BUTTON in
+    1)  if [[ "$new_mail_count" > 0 ]]; then
+            urxvtc -e mutt -F ~/.mutt/account.1.muttrc
+        fi
+esac
+
 [[ "$new_mail_count" > 0 ]] && exit 33 || exit 0
