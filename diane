@@ -271,7 +271,7 @@ add_label(){
             echo -e "\nLabelled:\n$labelled_task\n" | awk_output_long | show_predefined_labels
 
             sed -i "s/$selected_task/$labelled_task/g" $diane_file
-            
+
         # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unlabelled_tasks[@]} )); then
 
@@ -281,7 +281,7 @@ add_label(){
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
-        
+
         else
 
             not_valid
@@ -330,12 +330,12 @@ remove_label(){
             echo -e "\nLabel removed:\n$unlabelled_task\n" | awk_output_long | show_predefined_labels
 
             sed -i "s/$selected_task/$unlabelled_task/g" $diane_file
-            
+
         # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#labelled_tasks[@]} )); then
 
            not_valid
-           
+
         # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
@@ -389,17 +389,17 @@ flag_finished_task(){
 
             # Do the magic. Get the selected task and "flag" it with sed, putting a $DONE string at the end of the line
             sed -i s"/$selected_task/& $DONE/" $diane_file
-            
+
         # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#unfinished_tasks[@]} )); then
 
             not_valid
-            
+
         # If task index is 'q' or 'Q' the exit the loop
         elif [[ $task_index == "q" ]] || [[ $task_index == "Q" ]]; then
 
             break
-        
+
         else
 
             not_valid
@@ -450,7 +450,7 @@ remove_flag(){
 
             # Do the real trick. Replace the selected task by the same one without the flag
             sed -i s"/$selected_task/$replace_task/" $diane_file
-            
+
         # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#finished_tasks[@]} )); then
 
@@ -536,7 +536,7 @@ remove_task(){
 
             # Remove the selected task directly from diane file
             sed -i "/$remove_task/d" $diane_file
-        
+
         # If task index is a number, but it's equal to the number of the elements of the list, then print error message and continue the loop
         elif [[ $task_index =~ ^[0-9]+$ ]] && (( $task_index == ${#content_array[@]} )); then
 
