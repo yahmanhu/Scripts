@@ -6,13 +6,13 @@ check_wifi=$(cat /sys/class/net/wlp3s0/operstate)
 check_eth=$(cat /sys/class/net/enp4s0/operstate)
 
 if [[ $check_wifi = *"up"* ]] ; then
-    sudo rfkill block wifi
+    nmcli radio wifi off
     if [[ $check_eth = *"down"* ]]; then
         echo 'off' > $HOME/.config/awesome/mailchecker
     fi
     notify-send Wi-Fi Off
 else
-    sudo rfkill unblock wifi
+    nmcli radio wifi on
     echo 'on' > $HOME/.config/awesome/mailchecker
     notify-send Wi-Fi On
 fi
