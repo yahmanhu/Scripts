@@ -7,6 +7,7 @@
 
 gmailcheck.sh
 new_mail_count=$(cat ~/.mutt/newmail_count)
+new_mail_list=$(cat ~/.mutt/newmail_list)
 
 echo Mail: "$new_mail_count"
 
@@ -15,5 +16,11 @@ case $BLOCK_BUTTON in
             urxvtc -e mutt -F ~/.mutt/account.1.muttrc
         fi
 esac
+
+if [[ ! -z "$new_mail_list" ]] && [[ "$new_mail_count" > 0 ]]; then
+    if [[ ! $(pgrep mutt) ]]; then
+        notify-send -u critical "$new_mail_list"
+    fi
+fi
 
 [[ "$new_mail_count" > 0 ]] && exit 33 || exit 0
