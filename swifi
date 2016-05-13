@@ -7,12 +7,8 @@ check_eth=$(cat /sys/class/net/enp4s0/operstate)
 
 if [[ $check_wifi = *"up"* ]] ; then
     nmcli radio wifi off
-    if [[ $check_eth = *"down"* ]]; then
-        echo 'off' > $HOME/.config/awesome/mailchecker
-    fi
-    notify-send Wi-Fi Off
+    notify-send "Wi-Fi Off"
 else
     nmcli radio wifi on
-    echo 'on' > $HOME/.config/awesome/mailchecker
-    notify-send Wi-Fi On
+    notify-send "Wi-Fi On"
 fi
