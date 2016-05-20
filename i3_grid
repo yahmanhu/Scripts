@@ -1,0 +1,12 @@
+#!/bin/bash
+urxvtc &
+sleep .1
+i3-msg split h
+urxvtc &
+sleep .1
+i3-msg split v
+urxvtc &
+sleep .1
+i3-msg focus left
+i3-msg split v
+urxvtc &
