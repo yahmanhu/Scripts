@@ -51,13 +51,8 @@ show_predefined_labels(){
 
     if [[ $show_predefined_labels == "true" ]]; then
 
-        example=$reset$italic$red\EXAMPLE$reset
-        spotymenu=$reset$green$bold\SPOTYMENU$reset
         note=$reset$white$bold$inverted\Note$reset
-        awesome=$reset$blue$bold\AWESOME$reset
         diane=$reset$bold$green\Diane$reset
-        dmw=$rest$bold$inverted$magenta\dmw$reset
-        dms=$rest$bold$inverted$cyan\dms$reset
 
         awk '{ \
         gsub("#EXAMPLE","'$example'");\
