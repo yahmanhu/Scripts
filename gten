@@ -77,7 +77,7 @@ else
 
         # Getting the first meaning of the phrase
         first_meaning=$(echo -e $output | grep -o -E '.*Definitions|.*Translations' | sed "s/$phrase//" | sed "s/\/.*\// /" | sed "s/Definitions//" | sed "s/Translations//")
-        
+
         # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases). Also add the first meaning of the phrase to the list
         if [[ ${GTHIST[@]} =~ "$phrase" ]]; then
             :
