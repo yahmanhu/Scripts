@@ -33,13 +33,13 @@ else
         # Ask for a phrase (or word) to look for
         read -p $'Next phrase: ' phrase
 
-        # If phrase is "clr" (abbreviation for clear) script clears the terminal and continues the loop
-        if [[ $phrase == "clr" ]]; then
+        # If phrase is "c" (abbreviation for clear) script clears the terminal and continues the loop
+        if [[ $phrase == "c" ]]; then
 
             clearcont
 
-        # If phrase is "ext" (abbreviation for exit), script exits the program by breaking the loop
-        elif [[ $phrase == "ext" ]]; then
+        # If phrase is "q" (abbreviation for exit), script exits the program by breaking the loop
+        elif [[ $phrase == "q" ]]; then
 
             break
 

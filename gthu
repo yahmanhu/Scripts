@@ -33,13 +33,13 @@ else
         # Ask for a phrase (or word) to look for
         read -p $'Next phrase: ' phrase
 
-        # If phrase is "clr" (abbreviation for clear) script clears the terminal and continues the loop
-        if [[ $phrase == "clr" ]]; then
+        # If phrase is "c" (abbreviation for clear) script clears the terminal and continues the loop
+        if [[ $phrase == "c" ]]; then
 
             clearcont
 
-        # If phrase is "ext" (abbreviation for exit), script exits the program by breaking the loop
-        elif [[ $phrase == "ext" ]]; then
+        # If phrase is "q" (abbreviation for exit), script exits the program by breaking the loop
+        elif [[ $phrase == "q" ]]; then
 
             break
 
@@ -77,7 +77,7 @@ else
 
         # Getting the first meaning of the phrase
         first_meaning=$(echo -e $output | grep -o -E '.*Definitions|.*Translations' | sed "s/$phrase//" | sed "s/\/.*\// /" | sed "s/Definitions//" | sed "s/Translations//")
-        
+
         # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases). Also add the first meaning of the phrase to the list
         if [[ ${GTHIST[@]} =~ "$phrase" ]]; then
             :
