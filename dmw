@@ -11,7 +11,7 @@ journal=~/dmw_journal
 # Use periscope (yes or no)?
 use_periscope="no"
 # Date format for journaling
-date=$(date +"%d-%m-%Y-%H:%M")
+date=$(date +"%m-%d-%Y-%H:%M")
 # dmenu style
 [[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
 # dmenu font for subtitle prompt
