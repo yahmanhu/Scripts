@@ -17,10 +17,10 @@ case $BLOCK_BUTTON in
         fi
 esac
 
-if [[ ! -z "$new_mail_list" ]] && [[ "$new_mail_count" > 0 ]]; then
-    if [[ ! $(pgrep mutt) ]]; then
-        notify-send -u critical "$new_mail_list"
-    fi
-fi
+#if [[ ! -z "$new_mail_list" ]] && [[ "$new_mail_count" > 0 ]]; then
+    #if [[ ! $(pgrep mutt) ]]; then
+        #notify-send -u critical "$new_mail_list"
+    #fi
+#fi
 
 [[ "$new_mail_count" > 0 ]] && exit 33 || exit 0
