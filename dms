@@ -23,7 +23,7 @@ _open(){
         xdg-open "https://www.youtube.com/results?search_query="$search""
     # Search on Kickass
     elif [[ $dmenu_search =~ "kat" ]] || [[ $selected_history_element =~ "kat" ]]; then
-        xdg-open "https://kat.cr/usearch/?q="$search""
+        xdg-open "http://torrent-dx.com/search/"$search""
     # Search on IMDb
     elif [[ $dmenu_search =~ "imdb" ]]|| [[ $selected_history_element =~ "imdb" ]]; then
         xdg-open "http://www.imdb.com/find?ref_=nv_sr_fn&q="$search"&s=all"
