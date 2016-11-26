@@ -13,7 +13,7 @@ white='\e[97m'
 clearcont() {
 
     clear
-    continue
+    #continue
 
 }
 
@@ -37,6 +37,7 @@ else
         if [[ $phrase == "c" ]]; then
 
             clearcont
+            continue
 
         # If phrase is "q" (abbreviation for exit), script exits the program by breaking the loop
         elif [[ $phrase == "q" ]]; then
@@ -66,6 +67,7 @@ else
             if [[ $select == "exit" ]]; then
 
                 clearcont
+                continue
 
             fi
 
