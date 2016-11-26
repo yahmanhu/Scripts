@@ -1,0 +1,14 @@
+#!/bin/bash
+# Open files in gvim via dmenu
+
+[[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
+
+dirs=(~/dotfiles ~/documents ~/scripts ~/.config/firefoxnewtab ~/.config/spotymenu ~/.config/youtube-dl ~/.config/i3 ~/.config/i3blocks/config)
+
+list=$(find "${dirs[@]}" -type f ! -iregex ".*[/]\.git[/]?.*\|^.+\.png$\|^.+\.jpg$\|^.+\.psd$\|^.+\.pdf$\|^.+\.odt$\|^.+\.ods$\|^.+\.docx?$\|^.+\.xlsx?$\|^.+\.epub$\|^.+\.mobi$\|^.+\.svg$\|^.+\.celtx$" | $DMENU)
+
+if [[ $list == "" ]]; then
+    :
+else
+    gvim $list
+fi
