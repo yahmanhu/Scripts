@@ -3,6 +3,14 @@
 
 bookmarks_file=~/scripts/bookmarks
 keyword=$( awk '{print $1}' $bookmarks_file | dmenu -fn 'Terminus')
-selected_link=$(awk '/'"$keyword"'/{print $2}' $bookmarks_file)
 
-xdg-open $selected_link
+if [[ "$keyword" = "" ]]; then
+    :
+    exit
+else
+    selected_link=$(awk '/'"$keyword"'/{print $2}' $bookmarks_file)
+fi
+
+#echo $selected_link
+$BROWSER $selected_link
+
