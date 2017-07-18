@@ -44,6 +44,10 @@ else
 
             break
 
+        # If phrase is "l" (abbreviation for last), script will translate the last element of array again
+        elif [[ $phrase == "l" ]]; then
+            phrase=${GTHIST[-1]}
+
         # If phrase is "hist" script clears the terminal and jumps into history
         elif [[ $phrase == "hist" ]]; then
             clear
