@@ -13,4 +13,3 @@ fi
 
 #echo $selected_link
 $BROWSER $selected_link
-
