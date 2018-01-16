@@ -1,0 +1,4 @@
+#!/bin/bash
+# userscript for Qutebrowser to use translate shell
+
+urxvtc --hold -e trans en:hu "$QUTE_SELECTED_TEXT" >> "$QUTE_FIFO"
