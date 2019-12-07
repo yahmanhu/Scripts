@@ -1,0 +1,10 @@
+#!/bin/bash
+# Lay vs. lie cheat sheet
+
+echo "Infinitive  Definition          Present     Present Participle    Past     Past Participle"
+echo "------------------------------------------------------------------------------------------"
+echo ""
+echo "to lay      to put or place     lay(s)      laying                laid     laid           "
+echo "            something down"
+echo ""
+echo "to lie      to rest or recline  lie(s)      lying                 lay      lain           "

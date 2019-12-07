@@ -2,7 +2,7 @@
 # Open favorite bookmarks in dmenu
 
 bookmarks_file=~/scripts/bookmarks
-keyword=$( awk '{print $1}' $bookmarks_file | dmenu -fn 'Terminus')
+keyword=$( awk '{print $1}' $bookmarks_file | dmenu -nb '#fff' -nf '#000000' -sb '#4084D6' -sf '#ffffff' -fn 'DejaVu-Sans-Mono-Bold-10')
 
 if [[ "$keyword" = "" ]]; then
     :

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+gmailcheck.sh
+mail_count=$(cat ~/.mutt/newmail_count)
+
+if [ "$mail_count" -gt 0 ]; then
+    #mail_count="<span foreground='#ff0000'>${mail_count}new</span>"
+    #mail_count="<span foreground='#DE0404'>${mail_count}new</span>"
+    mail_count="<span foreground='#4084D6'> </span>"
+else
+    #mail_count=$mail_count
+    #mail_count=
+    mail_count="<span foreground='#999999'> </span>"
+fi
+
+echo "$mail_count"
+
+case $BLOCK_BUTTON in
+    1) urxvtc -e mutt -F ~/.mutt/account.1.muttrc;;
+esac

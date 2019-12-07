@@ -1,0 +1,3 @@
+#!/bin/bash
+
+urxvtc -e sh -c "mpv $(xsel -b)"

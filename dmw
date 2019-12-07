@@ -13,7 +13,7 @@ use_periscope="no"
 # Date format for journaling
 date=$(date +"%m-%d-%Y-%H:%M")
 # dmenu style
-[[ -f ~/.dmenurc ]] && source ~/.dmenurc || DMENU='dmenu -i -l 20'
+DMENU='dmenu -i -l 20 -nb '#fff' -nf '#000000' -sb '#4084D6' -sf '#ffffff' -fn "Monospace-14"'
 # dmenu font for subtitle prompt
 subtitle_prompt_font="Terminus"
 # media player command

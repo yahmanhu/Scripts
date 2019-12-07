@@ -1,0 +1,26 @@
+#!/bin/bash
+
+
+date +'%H:%M - %A, %B %d'
+
+DATE=$(date +'%H:%M - %A, %B %d')
+SONGTITLE=$(mocp -i | grep 'SongTitle:' | sed -e 's/^.*: //');
+ARTIST=$(mocp -i | grep 'Artist:' | sed -e 's/^.*: //');
+ALBUM=$(mocp -i | grep 'Album:' | sed -e 's/^.*: //');
+FILENAME=$(mocp -i | grep "File" | sed 's/File: //' | sed 's/.*\///')
+
+#if [[ ! -z $ARTIST ]]; then
+    ##echo "   $ARTIST - $SONGTITLE  <span foreground='#4e4e4e'>($ALBUM)</span> "; pkill -RTMIN+3 i3blocks
+    #echo "$DATE <span foreground='#4084D6'> $ARTIST - $SONGTITLE</span>"; pkill -RTMIN+3 i3blocks
+    ##echo "$DATE  $ARTIST - $SONGTITLE"; pkill -RTMIN+3 i3blocks
+#elif [[ ! -z $FILENAME ]]; then
+    #echo "$DATE <span foreground='#4084D6'> $FILENAME</span>"; pkill -RTMIN+3 i3blocks
+    ##echo "$DATE  $FILENAME"; pkill -RTMIN+3 i3blocks
+#else
+    #pkill -RTMIN+3 i3blocks
+    #echo "$DATE"
+#fi
+
+case $BLOCK_BUTTON in
+    1) i3-msg -q exec "zenity --calendar --title=Calendar --text="""
+esac

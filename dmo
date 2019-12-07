@@ -5,10 +5,14 @@
 
 dirs=(~/dotfiles ~/documents ~/scripts ~/.config/firefoxnewtab ~/.config/spotymenu ~/.config/youtube-dl ~/.config/i3 ~/.config/i3blocks/config)
 
-list=$(find "${dirs[@]}" -type f ! -iregex ".*[/]\.git[/]?.*\|^.+\.png$\|^.+\.jpg$\|^.+\.psd$\|^.+\.pdf$\|^.+\.odt$\|^.+\.ods$\|^.+\.docx?$\|^.+\.xlsx?$\|^.+\.epub$\|^.+\.mobi$\|^.+\.svg$\|^.+\.celtx$" | $DMENU)
+list=$(find "${dirs[@]}" -not -path '*/!backup/*' -type f ! -iregex ".*[/]\.git[/]?.*\|^.+\.png$\|^.+\.jpg$\|^.+\.psd$\|^.+\.ods$\|^.+\.docx?$\|^.+\.xlsx?$\|^.+\.epub$\|^.+\.mobi$\|^.+\.svg$\|^.+\.celtx$" | $DMENU)
 
 if [[ $list == "" ]]; then
     :
+elif [[ $list == *"odt"* ]]; then
+    libreoffice $list
+elif [[ $list == *"pdf"* ]]; then
+    zathura $list
 else
     gvim $list
 fi

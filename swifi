@@ -7,8 +7,12 @@ check_eth=$(cat /sys/class/net/enp4s0/operstate)
 
 if [[ $check_wifi = *"up"* ]] ; then
     nmcli radio wifi off
-    notify-send "Wi-Fi Off"
+    #notify-send "Wi-Fi Off"
+	#wifi_widget="<span foreground='#999999'></span>"
 else
     nmcli radio wifi on
-    notify-send "Wi-Fi On"
+    #notify-send "Wi-Fi On"
+	#wifi_widget="<span foreground='#000000'></span>"
 fi
+
+#echo "$wifi_widget"
